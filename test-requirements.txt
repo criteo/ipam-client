@@ -1,0 +1,5 @@
+.
+pylama
+pytest
+pytest-cov
+python-coveralls
