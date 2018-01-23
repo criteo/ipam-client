@@ -143,6 +143,115 @@ def test_add_next_ip(testphpipam):
         testphpipam.add_next_ip(subnet, 'err', 'err')
     assert "is full" in str(excinfo.value)
 
+    subnet = IPNetwork('2001::40/125')
+    description = 'add_next_ip generated ip 19'
+    dnsname = 'add_next_ip generated-ip-19'
+    ipaddr = IPAddress('2001::41')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 20'
+    dnsname = 'add_next_ip generated-ip-20'
+    ipaddr = IPAddress('2001::42')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 21'
+    dnsname = 'add_next_ip generated-ip-21'
+    ipaddr = IPAddress('2001::43')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 22'
+    dnsname = 'add_next_ip generated-ip-22'
+    ipaddr = IPAddress('2001::44')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 23'
+    dnsname = 'add_next_ip generated-ip-21'
+    ipaddr = IPAddress('2001::45')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 24'
+    dnsname = 'add_next_ip generated-ip-22'
+    ipaddr = IPAddress('2001::46')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 25'
+    dnsname = 'add_next_ip generated-ip-22'
+    ipaddr = IPAddress('2001::47')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 125
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_ip(subnet, 'err', 'err')
+    assert "is full" in str(excinfo.value)
+
+    subnet = IPNetwork('2001::50/127')
+    description = 'add_next_ip generated ip 26'
+    dnsname = 'add_next_ip generated-ip-23'
+    ipaddr = IPAddress('2001::50')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 127
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    description = 'add_next_ip generated ip 27'
+    dnsname = 'add_next_ip generated-ip-24'
+    ipaddr = IPAddress('2001::51')
+    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    assert ip.ip == ipaddr
+    assert ip.prefixlen == 127
+    testip = testphpipam.get_ip_by_desc(description)
+    assert testip['ip'] == ipaddr
+    assert testip['dnsname'] == dnsname
+    assert testip['description'] == description
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_ip(subnet, 'err', 'err')
+    assert "is full" in str(excinfo.value)
+
 
 def test_get_next_free_ip(testphpipam):
     ip = testphpipam.get_next_free_ip(IPNetwork('10.1.0.0/28'))

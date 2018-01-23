@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 import mysql.connector
-import struct
 import sqlite3
 from ipam.client.abstractipam import AbstractIPAM
-from socket import inet_pton, AF_INET
 from netaddr import IPAddress, IPNetwork
 
 
@@ -49,10 +47,9 @@ class PHPIPAM(AbstractIPAM):
         return self.section_id
 
     def find_subnet_id(self, subnet):
-        network = struct.unpack('>L',
-                                inet_pton(AF_INET, '%s' % subnet.network))[0]
-        self.cur.execute("SELECT id FROM subnets WHERE subnet=%d \
-                         AND mask=%d"
+        network = int(subnet.network)
+        self.cur.execute("SELECT id FROM subnets WHERE subnet='%d' \
+                         AND mask='%d'"
                          % (network, subnet.prefixlen))
         row = self.cur.fetchone()
         if row is not None:
@@ -102,6 +99,13 @@ class PHPIPAM(AbstractIPAM):
         subnetips = subnet.iter_hosts()
         # Get allocated ip addresses from database
         usedips = self.get_allocated_ips_by_subnet_id(subnetid)
+
+        # Dirty hack, as netaddr has no support for RFC 6164 /127 subnets
+        # https://github.com/drkjam/netaddr/pull/168
+        if subnet.prefixlen == 127:
+            subnetips = list(subnetips)
+            subnetips.append(subnet.network)
+
         subnetips = set(subnetips)
         usedips = set(usedips)
         # Compute the difference between sets, aka available ip addresses set
@@ -119,13 +123,13 @@ class PHPIPAM(AbstractIPAM):
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE subnetId=%d ORDER BY ip_addr ASC"
                          % (subnetid))
-        iplist = [IPAddress(ip[0]) for ip in self.cur]
+        iplist = [IPAddress(int(ip[0])) for ip in self.cur]
         return iplist
 
     def get_hostname_by_ip(self, ip):
-        ip = struct.unpack('>L', ip.packed)
+        ip = int(ip)
         self.cur.execute("SELECT dns_name FROM ipaddresses \
-                         WHERE ip_addr=%d"
+                         WHERE ip_addr='%d'"
                          % ip)
         row = self.cur.fetchone()
         if row is not None:
@@ -133,9 +137,9 @@ class PHPIPAM(AbstractIPAM):
         return None
 
     def get_description_by_ip(self, ip):
-        ip = struct.unpack('>L', ip.packed)
+        ip = int(ip)
         self.cur.execute("SELECT description FROM ipaddresses \
-                         WHERE ip_addr=%d"
+                         WHERE ip_addr='%d'"
                          % ip)
         row = self.cur.fetchone()
         if row is not None:
@@ -208,7 +212,7 @@ class PHPIPAM(AbstractIPAM):
         iplist = list()
         for row in self.cur:
             item = {}
-            item['ip'] = IPAddress(IPAddress(int(row[0])))
+            item['ip'] = IPAddress(int(row[0]))
             item['description'] = row[1]
             item['dnsname'] = row[2]
             iplist.append(item)
@@ -228,7 +232,7 @@ class PHPIPAM(AbstractIPAM):
         netlist = list()
         for row in self.cur:
             item = {}
-            subnet = str(IPAddress(row[0]))
+            subnet = str(IPAddress(int(row[0])))
             item['subnet'] = IPNetwork("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
             netlist.append(item)
@@ -248,7 +252,7 @@ class PHPIPAM(AbstractIPAM):
         row = self.cur.fetchone()
         if row is not None:
             item = {}
-            subnet = str(IPAddress(row[0]))
+            subnet = str(IPAddress(int(row[0])))
             item['subnet'] = IPNetwork("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
             return item
@@ -257,7 +261,7 @@ class PHPIPAM(AbstractIPAM):
     def get_num_ips_by_desc(self, description):
         self.cur.execute("SELECT COUNT(ip_addr) FROM ipaddresses \
                          WHERE description LIKE '%s'\
-                              AND state = 1"
+                              AND state = '1'"
                          % (description))
         row = self.cur.fetchone()
         if row is not None:

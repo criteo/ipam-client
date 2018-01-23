@@ -79,6 +79,8 @@ INSERT INTO "subnets" VALUES (2,'167903232','29',2,'TEST FULL /29 SUBNET',0,0,1,
 INSERT INTO "subnets" VALUES (3,'167968768','30',2,'TST /30 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
 INSERT INTO "subnets" VALUES (4,'168034304','31',2,'TEST /31 SUBNET GROUP',0,0,1,0,0,'{"2":"1","3":"1"}',0,0,NULL);
 INSERT INTO "subnets" VALUES (5,'168099840','31',2,'TEST /31 SUBNET GROUP',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
+INSERT INTO "subnets" VALUES (6,'42540488161975842760550356425300246592','125',2,'TEST IPv6 /126 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
+INSERT INTO "subnets" VALUES (7,'42540488161975842760550356425300246608','127',2,'TEST IPv6 /127 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
 CREATE INDEX "subnets_subnet" ON "subnets" ("subnet");
 CREATE INDEX "sections_id" ON "sections" ("id");
 CREATE INDEX "ipaddresses_dns_name" ON "ipaddresses" ("dns_name");
