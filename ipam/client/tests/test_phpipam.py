@@ -1,3 +1,4 @@
+import mysql.connector
 import os
 import pytest
 import tempfile
@@ -38,6 +39,14 @@ def testphpipam(testdb):
               'database_uri': testdb}
 
     return PHPIPAM(params)
+
+
+def test_db_fail():
+    params = {'section_name': 'Test', 'username': 'test',
+              'database_host': 'localhost', 'database_name': 'test',
+              'password': 'test', 'database_uri': 'testdb'}
+    with pytest.raises(mysql.connector.Error):
+        PHPIPAM(params)
 
 
 def test_set_section_id(testphpipam):

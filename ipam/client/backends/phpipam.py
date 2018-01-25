@@ -278,4 +278,5 @@ class PHPIPAM(AbstractIPAM):
         return None
 
     def __del__(self):
-        self.db.close()
+        if hasattr(self, 'db'):
+            self.db.close()
