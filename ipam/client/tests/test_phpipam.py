@@ -1,3 +1,4 @@
+import mysql.connector
 import os
 import pytest
 import tempfile
@@ -40,9 +41,18 @@ def testphpipam(testdb):
     return PHPIPAM(params)
 
 
+def test_db_fail():
+    params = {'section_name': 'Test', 'username': 'test',
+              'database_host': 'localhost', 'database_name': 'test',
+              'password': 'test', 'database_uri': 'testdb'}
+    with pytest.raises(mysql.connector.Error):
+        PHPIPAM(params)
+
+
 def test_set_section_id(testphpipam):
     testphpipam.set_section_id(42)
     assert testphpipam.section_id == 42
+    assert testphpipam.get_section_id() == 42
 
 
 def test_set_section_id_by_name(testphpipam):
@@ -253,6 +263,24 @@ def test_add_next_ip(testphpipam):
     assert "is full" in str(excinfo.value)
 
 
+def test_delete_ip(testphpipam):
+    iplist = testphpipam.get_ip_list_by_desc('test ip #2')
+    assert iplist == [{'ip': IPAddress('10.1.0.2'),
+                       'description': 'test ip #2',
+                       'dnsname': 'test-ip-2'}]
+    testphpipam.delete_ip(IPNetwork('10.1.0.2/28'))
+    iplist = testphpipam.get_ip_list_by_desc('test ip #2')
+    assert iplist == []
+
+    with pytest.raises(ValueError):
+        testphpipam.delete_ip(IPNetwork('10.1.0.2/28'))
+
+    with pytest.raises(ValueError):
+        testphpipam.delete_ip(IPNetwork('10.1.0.42/28'))
+
+
+
+
 def test_get_next_free_ip(testphpipam):
     ip = testphpipam.get_next_free_ip(IPNetwork('10.1.0.0/28'))
     assert ip.ip == IPAddress('10.1.0.4')
@@ -311,6 +339,21 @@ def test_get_ip_by_desc(testphpipam):
     assert testip['description'] == 'test ip group 1'
     assert testip['dnsname'] == 'test-ip-8'
 
+def test_get_ipnetwork_by_desc(testphpipam):
+    assert testphpipam.get_ip_by_desc('unknown ip') is None
+
+    testip = testphpipam.get_ipnetwork_by_desc('test ip #2')
+    assert testip['ip'] == IPNetwork('10.1.0.2/28')
+    assert testip['description'] == 'test ip #2'
+    assert testip['dnsname'] == 'test-ip-2'
+
+    testip = testphpipam.get_ipnetwork_by_desc('test ip group 1')
+    assert testip['ip'] == IPNetwork('10.2.0.1/29')
+    assert testip['description'] == 'test ip group 1'
+    assert testip['dnsname'] == 'test-ip-8'
+
+    testip = testphpipam.get_ipnetwork_by_desc('non-existent ip')
+    assert testip == None
 
 def test_get_ip_list_by_desc(testphpipam):
     assert testphpipam.get_ip_list_by_desc('unknown ip') == []
@@ -353,6 +396,14 @@ def test_get_ipnetwork_list_by_desc(testphpipam):
                        'vlan_id': None}
                       ]
 
+def test_get_ipnetwork_by_subnet_name(testphpipam):
+    ip = testphpipam.get_ipnetwork_by_subnet_name('TEST%')
+    assert ip == {'description': u'test ip #1',
+                  'dnsname': u'test-ip-1',
+                  'ip': IPNetwork('10.1.0.1/28'),
+                  'subnet_name': u'TEST /28 SUBNET'}
+    ip = testphpipam.get_ipnetwork_by_subnet_name('non-existent ip')
+    assert ip == None
 
 def test_get_ipnetwork_list_by_subnet_name(testphpipam):
     iplist = testphpipam.get_ipnetwork_list_by_subnet_name('TEST%')

@@ -19,13 +19,13 @@ class PHPIPAM(AbstractIPAM):
             self.db = sqlite3.connect(params['database_uri'])
             self.dbtype = 'sqlite'
         else:  # defaults to mysql
+            self.dbtype = 'mysql'
             self.db = mysql.connector.connect(
                 host=params['database_host'],
                 user=params['username'],
                 password=params['password'],
                 database=params['database_name']
             )
-            self.dbtype = 'mysql'
         self.cur = self.db.cursor()
         self.set_section_id_by_name(section_name)
 
@@ -61,8 +61,8 @@ class PHPIPAM(AbstractIPAM):
         instance of IPNetwork. Returns True """
         subnetid = self.find_subnet_id(ipaddress)
         if subnetid is None:
-            raise ValueError("Unable to get subnet id from database \
-                             for subnet %s/%s"
+            raise ValueError("Unable to get subnet id from database "
+                             "for subnet %s/%s"
                              % (ipaddress.network, ipaddress.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
@@ -82,18 +82,20 @@ class PHPIPAM(AbstractIPAM):
     def add_next_ip(self, subnet, dnsname, description):
         """ Finds next free ip in subnet, and adds it in IPAM.
         Returns IP address as IPNetwork """
-        ipaddress = self.get_next_free_ip(subnet)
-        if not self.add_ip(ipaddress, dnsname, description):
-            raise ValueError("Unable to add IP address %s" % ipaddress)
-        return ipaddress
+        try:
+            ipaddress = self.get_next_free_ip(subnet)
+            self.add_ip(ipaddress, dnsname, description)
+            return ipaddress
+        except ValueError as e:
+            raise ValueError("Unable to add next IP in %s:%s" % (subnet, str(e)))
 
     def get_next_free_ip(self, subnet):
         """ Finds next free ip in subnet. Returns IP address as IPNetwork """
         # Find PHPIPAM subnet id
         subnetid = self.find_subnet_id(subnet)
         if subnetid is None:
-            raise ValueError("Unable to get subnet id from database \
-                             for subnet %s/%s"
+            raise ValueError("Unable to get subnet id from database "
+                             "for subnet %s/%s"
                              % (subnet.network, subnet.prefixlen))
         # Create hosts list in subnet
         subnetips = subnet.iter_hosts()
@@ -125,6 +127,28 @@ class PHPIPAM(AbstractIPAM):
                          % (subnetid))
         iplist = [IPAddress(int(ip[0])) for ip in self.cur]
         return iplist
+
+    def delete_ip(self, ipaddress):
+        """Delete an IP address in IPAM. ipaddress must be an
+        instance of IPNetwork with correct prefix length.
+        """
+        subnetid = self.find_subnet_id(ipaddress)
+        if subnetid is None:
+            raise ValueError("Unable to get subnet id from database "
+                             "for subnet %s/%s"
+                             % (ipaddress.network, ipaddress.prefixlen))
+        self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (int(ipaddress.ip), subnetid))
+        row = self.cur.fetchone()
+        if row is None:
+            raise ValueError("IP address %s not present"
+                             % (ipaddress.ip))
+        self.cur.execute("DELETE from ipaddresses \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (int(ipaddress.ip), subnetid))
+        self.db.commit()
+        return True
 
     def get_hostname_by_ip(self, ip):
         ip = int(ip)
@@ -197,7 +221,7 @@ class PHPIPAM(AbstractIPAM):
         return iplist
 
     def get_ipnetwork_by_subnet_name(self, subnet_name):
-        iplist = self.get_ipnetwork_list_by_desc(subnet_name)
+        iplist = self.get_ipnetwork_list_by_subnet_name(subnet_name)
         if iplist == []:
             return None
         else:
@@ -264,18 +288,15 @@ class PHPIPAM(AbstractIPAM):
                               AND state = '1'"
                          % (description))
         row = self.cur.fetchone()
-        if row is not None:
-            return int(row[0])
-        return None
+        return int(row[0])
 
     def get_num_subnets_by_desc(self, description):
         self.cur.execute("SELECT COUNT(subnet) FROM subnets \
                          WHERE description LIKE '%s'"
                          % description)
         row = self.cur.fetchone()
-        if row is not None:
-            return int(row[0])
-        return None
+        return int(row[0])
 
     def __del__(self):
-        self.db.close()
+        if hasattr(self, 'db'):
+            self.db.close()
