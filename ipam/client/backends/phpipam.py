@@ -126,6 +126,28 @@ class PHPIPAM(AbstractIPAM):
         iplist = [IPAddress(int(ip[0])) for ip in self.cur]
         return iplist
 
+    def delete_ip(self, ipaddress):
+        """Delete an IP address in IPAM. ipaddress must be an
+        instance of IPNetwork with correct prefix length.
+        """
+        subnetid = self.find_subnet_id(ipaddress)
+        if subnetid is None:
+            raise ValueError("Unable to get subnet id from database \
+                             for subnet %s/%s"
+                             % (ipaddress.network, ipaddress.prefixlen))
+        self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (int(ipaddress.ip), subnetid))
+        row = self.cur.fetchone()
+        if row is None:
+            raise ValueError("IP address %s not present"
+                             % (ipaddress.ip))
+        self.cur.execute("DELETE from ipaddresses \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (int(ipaddress.ip), subnetid))
+        self.db.commit()
+        return True
+
     def get_hostname_by_ip(self, ip):
         ip = int(ip)
         self.cur.execute("SELECT dns_name FROM ipaddresses \
