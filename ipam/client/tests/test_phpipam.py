@@ -262,6 +262,19 @@ def test_add_next_ip(testphpipam):
     assert "is full" in str(excinfo.value)
 
 
+def test_delete_ip(testphpipam):
+    iplist = testphpipam.get_ip_list_by_desc('test ip #2')
+    assert iplist == [{'ip': IPAddress('10.1.0.2'),
+                       'description': 'test ip #2',
+                       'dnsname': 'test-ip-2'}]
+    testphpipam.delete_ip(IPNetwork('10.1.0.2/28'))
+    iplist = testphpipam.get_ip_list_by_desc('test ip #2')
+    assert iplist == []
+    with pytest.raises(ValueError):
+        testphpipam.delete_ip(IPNetwork('10.1.0.2/28'))
+        testphpipam.delete_ip(IPNetwork('10.1.0.42/28'))
+
+
 def test_get_next_free_ip(testphpipam):
     ip = testphpipam.get_next_free_ip(IPNetwork('10.1.0.0/28'))
     assert ip.ip == IPAddress('10.1.0.4')
