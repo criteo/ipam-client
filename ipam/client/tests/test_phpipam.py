@@ -54,6 +54,22 @@ def test_db_fail():
         PHPIPAM(params)
 
 
+def test_subnet_options(testdb, testphpipam):
+
+    assert testphpipam.subnet_options['vlan_id'] == 0
+    assert testphpipam.subnet_options['vrf_id'] == 0
+
+    params = {'section_name': 'Production', 'dbtype': 'sqlite',
+              'database_uri': testdb, 'subnet_vlan_id': 42,
+              'subnet_vrf_id': 43, 'subnet_permissions': 'test'}
+
+    testipam = PHPIPAM(params)
+
+    assert testipam.subnet_options['vlan_id'] == 42
+    assert testipam.subnet_options['vrf_id'] == 43
+    assert testipam.subnet_options['permissions'] == 'test'
+
+
 def test_set_section_id(testphpipam):
     testphpipam.set_section_id(42)
     assert testphpipam.section_id == 42
@@ -266,6 +282,63 @@ def test_add_next_ip(testphpipam):
     with pytest.raises(ValueError) as excinfo:
         testphpipam.add_next_ip(subnet, 'err', 'err')
     assert "is full" in str(excinfo.value)
+
+
+def test_add_next_subnet(testphpipam):
+    parent_subnet4 = ip_network('10.10.0.0/24')
+    parent_subnet6 = ip_network('2001:db8:42::/48')
+    for i in list(range(0, 3 + 1)):
+
+        description = 'add_next_subnet generated subnet4 {}'.format(i)
+        target_subnet = ip_network('10.10.0.{}/28'.format(16*i))
+
+        test_subnet = testphpipam.add_next_subnet(
+            parent_subnet4, 28, description)
+        assert target_subnet == test_subnet
+        assert test_subnet.prefixlen == 28
+        test_subnet = testphpipam.get_subnet_by_desc(description)
+        assert test_subnet['subnet'] == target_subnet
+        assert test_subnet['description'] == description
+
+        description = 'add_next_subnet generated subnet6 {}'.format(i)
+        target_subnet = ip_network('2001:db8:42::{:x}/120'.format(256*i))
+
+        test_subnet = testphpipam.add_next_subnet(
+            parent_subnet6, 120, description)
+        assert target_subnet == test_subnet
+        test_subnet = testphpipam.get_subnet_by_desc(description)
+        assert test_subnet['subnet'] == target_subnet
+        assert test_subnet['description'] == description
+
+    description = 'add_next_subnet generated subnet 14'
+    target_subnet = ip_network('10.10.0.128/25')
+
+    test_subnet = testphpipam.add_next_subnet(parent_subnet4, 25, description)
+    assert target_subnet == test_subnet
+    test_subnet = testphpipam.get_subnet_by_desc(description)
+    assert test_subnet['subnet'] == target_subnet
+    assert test_subnet['description'] == description
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_subnet(parent_subnet4, 25, 'err')
+    assert 'No more space to add a new subnet' in str(excinfo.value)
+
+    parent_subnet4 = ip_network('10.42.0.0/28')
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_subnet(parent_subnet4, 28, 'err')
+    assert 'too small to add new subnet' in str(excinfo.value)
+
+    parent_subnet4 = ip_network('10.42.0.64/28')
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_subnet(parent_subnet4, 29, 'err')
+    assert 'Unable to get subnet id' in str(excinfo.value)
+
+    parent_subnet4 = ip_network('10.10.0.0/24')
+    testphpipam.add_next_ip(parent_subnet4, 'test ip', 'test ip')
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_next_subnet(parent_subnet4, 28, 'err')
+    assert 'must not contain any allocated IP address' in str(excinfo.value)
 
 
 def test_delete_ip(testphpipam):

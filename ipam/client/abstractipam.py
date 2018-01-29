@@ -19,6 +19,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def add_next_subnet(self, parent_subnet, prefixlen, description):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_hostname_by_ip(self, ip):
         raise NotImplementedError()
 
