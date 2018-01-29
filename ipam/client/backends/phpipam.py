@@ -6,11 +6,25 @@ from ipaddress import ip_address, ip_interface, ip_network
 
 DEFAULT_IPAM_DB_TYPE = 'mysql'
 
+DEFAULT_SUBNET_OPTIONS = {
+    # Default permissions: read-only for guests and operators
+    'permissions': '{"2":"1","3":"1"}',
+    'vlan_id': 0,
+    'vrf_id': 0,
+}
+
 
 class PHPIPAM(AbstractIPAM):
 
     def __init__(self, params):
         dbtype = DEFAULT_IPAM_DB_TYPE
+        subnet_options = DEFAULT_SUBNET_OPTIONS.copy()
+        for (option, value) in DEFAULT_SUBNET_OPTIONS.items():
+            param_name = 'subnet_{}'.format(option)
+            if params.get(param_name):
+                value = params[param_name]
+            subnet_options[option] = value
+        self.subnet_options = subnet_options
         section_name = 'Production'
         if 'section_name' in params:
             section_name = params['section_name']
@@ -140,6 +154,86 @@ class PHPIPAM(AbstractIPAM):
                          % (subnetid))
         iplist = [ip_address(int(ip[0])) for ip in self.cur]
         return iplist
+
+    def add_next_subnet(self, parent_subnet, prefixlen, description):
+        """
+        Find a subnet prefixlen-wide in parent_subnet, insert it into IPAM,
+        and return it.
+        """
+        if prefixlen <= parent_subnet.prefixlen:
+            raise ValueError('Parent subnet {} is too small to add new '
+                             'subnet with prefixlen {}!'
+                             ''.format(parent_subnet, prefixlen))
+
+        parent_subnet_id = self.find_subnet_id(parent_subnet)
+        if not parent_subnet_id:
+            raise ValueError('Unable to get subnet id from database '
+                             'for parent subnet {}'.format(parent_subnet))
+
+        parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
+            parent_subnet_id)
+        if len(parent_subnet_used_ips):
+            raise ValueError('Parent subnet {} must not contain any '
+                             'allocated IP address!'.format(parent_subnet))
+
+        subnet = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
+                                            prefixlen)
+        if not subnet:
+            raise ValueError('No more space to add a new subnet with '
+                             'prefixlen {} in {}!'.format(
+                                prefixlen, parent_subnet))
+
+        # Everything is in order, insert our subnet in IPAM
+        self.cur.execute(
+            'INSERT INTO subnets '
+            '(subnet, mask, sectionId, description, vrfId, '
+            'masterSubnetId, vlanId, permissions) '
+            'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
+            '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
+                int(subnet.network_address),
+                subnet.prefixlen,
+                self.section_id,
+                description,
+                self.subnet_options['vrf_id'],
+                parent_subnet_id,
+                self.subnet_options['vlan_id'],
+                self.subnet_options['permissions']))
+        return subnet
+
+    def _get_next_free_subnet(self, subnet, subnet_id, prefixlen):
+        """
+        Find next free prefixlen-wide subnet in a given subnet.
+        """
+        allocated_subnets = self._get_allocated_subnets(
+            subnet_id, prefixlen)
+
+        for candidate_subnet in subnet.subnets(new_prefix=prefixlen):
+            is_overlapping = False
+            # A candidate subnet is free if it doesn't overlap any other
+            # allocated subnet
+            for allocated_subnet in allocated_subnets:
+                if candidate_subnet.overlaps(allocated_subnet):
+                    is_overlapping = True
+                    # Since one subnet is overlapping, don't check the others
+                    break
+            if not is_overlapping:
+                return candidate_subnet
+        return None
+
+    def _get_allocated_subnets(self, subnet_id, prefixlen):
+        """
+        Return list of unavailable children subnets in a parent subnet,
+        given its id.
+        """
+        self.cur.execute('SELECT subnet, mask FROM subnets '
+                         'WHERE masterSubnetId={} '
+                         'ORDER BY subnet ASC'.format(subnet_id))
+
+        allocated_subnets = [
+            ip_network('{}/{}'.format(ip_address(int(row[0])), int(row[1])))
+            for row in self.cur
+        ]
+        return allocated_subnets
 
     def delete_ip(self, ipaddress):
         """Delete an IP address in IPAM. ipaddress must be an
