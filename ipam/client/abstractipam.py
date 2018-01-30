@@ -27,19 +27,19 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
-    def get_ipnetwork_list_by_desc(self, description):
+    def get_ip_interface_list_by_desc(self, description):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_ipnetwork_list_by_subnet_name(self, subnet_name):
+    def get_ip_interface_list_by_subnet_name(self, subnet_name):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_ipnetwork_by_subnet_name(self, subnet_name):
+    def get_ip_interface_by_subnet_name(self, subnet_name):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_ipnetwork_by_desc(self, description):
+    def get_ip_interface_by_desc(self, description):
         raise NotImplementedError()
 
     @abstractmethod

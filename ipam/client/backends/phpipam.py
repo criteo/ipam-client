@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-
+from __future__ import unicode_literals
 import mysql.connector
 import sqlite3
 from ipam.client.abstractipam import AbstractIPAM
-from netaddr import IPAddress, IPNetwork
+from ipaddress import ip_address, ip_interface, ip_network
 
 DEFAULT_IPAM_DB_TYPE = 'mysql'
 
@@ -50,9 +49,20 @@ class PHPIPAM(AbstractIPAM):
         return self.section_id
 
     def find_subnet_id(self, subnet):
+        """
+        Return subnet id from database
+        """
+        if hasattr(subnet, 'network'):
+            # This is an interface
+            network = subnet.network
+        else:
+            # This is a subnet
+            network = subnet
+
         self.cur.execute("SELECT id FROM subnets WHERE subnet='%d' \
                          AND mask='%d'"
-                         % (subnet.network, subnet.prefixlen))
+                         % (network.network_address,
+                            network.prefixlen))
         row = self.cur.fetchone()
         if row is not None:
             return int(row[0])
@@ -60,12 +70,13 @@ class PHPIPAM(AbstractIPAM):
 
     def add_ip(self, ipaddress, dnsname, description):
         """ Adds an IP address in IPAM. ipaddress must be an
-        instance of IPNetwork. Returns True """
+        instance of ip_interface. Returns True """
         subnetid = self.find_subnet_id(ipaddress)
         if subnetid is None:
             raise ValueError("Unable to get subnet id from database "
                              "for subnet %s/%s"
-                             % (ipaddress.network, ipaddress.prefixlen))
+                             % (ipaddress.network.network_address,
+                                ipaddress.network.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
                          % (ipaddress.ip, subnetid))
@@ -83,7 +94,7 @@ class PHPIPAM(AbstractIPAM):
 
     def add_next_ip(self, subnet, dnsname, description):
         """ Finds next free ip in subnet, and adds it in IPAM.
-        Returns IP address as IPNetwork """
+        Returns IP address as ip_interface """
         try:
             ipaddress = self.get_next_free_ip(subnet)
             self.add_ip(ipaddress, dnsname, description)
@@ -93,23 +104,20 @@ class PHPIPAM(AbstractIPAM):
                 subnet, str(e)))
 
     def get_next_free_ip(self, subnet):
-        """ Finds next free ip in subnet. Returns IP address as IPNetwork """
+        """
+        Finds next free ip in subnet. Returns IP address as ip_interface
+        """
         # Find PHPIPAM subnet id
         subnetid = self.find_subnet_id(subnet)
         if subnetid is None:
             raise ValueError("Unable to get subnet id from database "
                              "for subnet %s/%s"
-                             % (subnet.network, subnet.prefixlen))
+                             % (subnet.network_address,
+                                subnet.prefixlen))
         # Create hosts list in subnet
-        subnetips = subnet.iter_hosts()
+        subnetips = subnet.hosts()
         # Get allocated ip addresses from database
         usedips = self.get_allocated_ips_by_subnet_id(subnetid)
-
-        # Dirty hack, as netaddr has no support for RFC 6164 /127 subnets
-        # https://github.com/drkjam/netaddr/pull/168
-        if subnet.prefixlen == 127:
-            subnetips = list(subnetips)
-            subnetips.append(subnet.network)
 
         subnetips = set(subnetips)
         usedips = set(usedips)
@@ -120,26 +128,29 @@ class PHPIPAM(AbstractIPAM):
         availableips.sort()
         if len(availableips) <= 0:
             raise ValueError("Subnet %s/%s is full"
-                             % (subnet.network, subnet.prefixlen))
+                             % (subnet.network_address,
+                                subnet.prefixlen))
         # Return first available ip address in the list
-        return IPNetwork("%s/%d" % (availableips[0], subnet.prefixlen))
+        return ip_interface("%s/%d" % (availableips[0],
+                                       subnet.prefixlen))
 
     def get_allocated_ips_by_subnet_id(self, subnetid):
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE subnetId=%d ORDER BY ip_addr ASC"
                          % (subnetid))
-        iplist = [IPAddress(int(ip[0])) for ip in self.cur]
+        iplist = [ip_address(int(ip[0])) for ip in self.cur]
         return iplist
 
     def delete_ip(self, ipaddress):
         """Delete an IP address in IPAM. ipaddress must be an
-        instance of IPNetwork with correct prefix length.
+        instance of ip_interface with correct prefix length.
         """
         subnetid = self.find_subnet_id(ipaddress)
         if subnetid is None:
             raise ValueError("Unable to get subnet id from database "
                              "for subnet %s/%s"
-                             % (ipaddress.network, ipaddress.prefixlen))
+                             % (ipaddress.network.network_address,
+                                ipaddress.network.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
                          % (ipaddress.ip, subnetid))
@@ -172,6 +183,12 @@ class PHPIPAM(AbstractIPAM):
         return None
 
     def get_ipnetwork_list_by_desc(self, description):
+        """
+        Wrapper for backward compatibility
+        """
+        return self.get_ip_interface_list_by_desc(description)
+
+    def get_ip_interface_list_by_desc(self, description):
         self.cur.execute("SELECT ip.ip_addr,ip.description,ip.dns_name,\
                               s.mask,s.description,v.number\
                           FROM ipaddresses ip\
@@ -185,8 +202,8 @@ class PHPIPAM(AbstractIPAM):
         iplist = list()
         for row in self.cur:
             item = {}
-            ip_address = IPAddress(int(row[0]))
-            item['ip'] = IPNetwork(str(ip_address) + "/" + row[3])
+            net_ip_address = ip_address(int(row[0]))
+            item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['subnet_name'] = row[4]
@@ -195,13 +212,25 @@ class PHPIPAM(AbstractIPAM):
         return iplist
 
     def get_ipnetwork_by_desc(self, description):
-        iplist = self.get_ipnetwork_list_by_desc(description)
+        """
+        Wrapper for backward compatibility
+        """
+        return self.get_ip_interface_by_desc(description)
+
+    def get_ip_interface_by_desc(self, description):
+        iplist = self.get_ip_interface_list_by_desc(description)
         if iplist == []:
             return None
         else:
             return iplist[0]
 
     def get_ipnetwork_list_by_subnet_name(self, subnet_name):
+        """
+        Wrapper for backward compatibility
+        """
+        return self.get_ip_interface_list_by_subnet_name(subnet_name)
+
+    def get_ip_interface_list_by_subnet_name(self, subnet_name):
         self.cur.execute("SELECT ip.ip_addr,ip.description,ip.dns_name,\
                               s.mask,s.description\
                           FROM ipaddresses ip\
@@ -213,8 +242,8 @@ class PHPIPAM(AbstractIPAM):
         iplist = list()
         for row in self.cur:
             item = {}
-            ip_address = IPAddress(int(row[0]))
-            item['ip'] = IPNetwork(str(ip_address) + "/" + row[3])
+            net_ip_address = ip_address(int(row[0]))
+            item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['subnet_name'] = row[4]
@@ -222,7 +251,13 @@ class PHPIPAM(AbstractIPAM):
         return iplist
 
     def get_ipnetwork_by_subnet_name(self, subnet_name):
-        iplist = self.get_ipnetwork_list_by_subnet_name(subnet_name)
+        """
+        Wrapper for backward compatibility
+        """
+        return self.get_ip_interface_by_subnet_name(subnet_name)
+
+    def get_ip_interface_by_subnet_name(self, subnet_name):
+        iplist = self.get_ip_interface_list_by_subnet_name(subnet_name)
         if iplist == []:
             return None
         else:
@@ -237,7 +272,7 @@ class PHPIPAM(AbstractIPAM):
         iplist = list()
         for row in self.cur:
             item = {}
-            item['ip'] = IPAddress(int(row[0]))
+            item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
             item['dnsname'] = row[2]
             iplist.append(item)
@@ -257,8 +292,8 @@ class PHPIPAM(AbstractIPAM):
         netlist = list()
         for row in self.cur:
             item = {}
-            subnet = str(IPAddress(int(row[0])))
-            item['subnet'] = IPNetwork("%s/%s" % (subnet, row[1]))
+            subnet = str(ip_address(int(row[0])))
+            item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
             netlist.append(item)
         return netlist
@@ -277,8 +312,8 @@ class PHPIPAM(AbstractIPAM):
         row = self.cur.fetchone()
         if row is not None:
             item = {}
-            subnet = str(IPAddress(int(row[0])))
-            item['subnet'] = IPNetwork("%s/%s" % (subnet, row[1]))
+            subnet = str(ip_address(int(row[0])))
+            item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
             return item
         return None
