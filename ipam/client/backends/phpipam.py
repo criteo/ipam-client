@@ -207,15 +207,13 @@ class PHPIPAM(AbstractIPAM):
         allocated_subnets = self._get_allocated_subnets(subnet_id)
 
         for candidate_subnet in subnet.subnets(new_prefix=prefixlen):
-            is_overlapping = False
             # A candidate subnet is free if it doesn't overlap any other
             # allocated subnet
             for allocated_subnet in allocated_subnets:
                 if candidate_subnet.overlaps(allocated_subnet):
-                    is_overlapping = True
                     # Since one subnet is overlapping, don't check the others
                     break
-            if not is_overlapping:
+            else:
                 return candidate_subnet
         return None
 
