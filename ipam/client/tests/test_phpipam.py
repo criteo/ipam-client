@@ -357,6 +357,29 @@ def test_delete_ip(testphpipam):
         testphpipam.delete_ip(ip_interface('10.1.0.42/28'))
 
 
+def test_delete_subnet(testphpipam):
+    subnet = testphpipam.get_subnet_by_desc('TEST IPv6 /125 SUBNET')
+    assert subnet['subnet'] == ip_network('2001::40/125')
+    assert subnet['description'] == 'TEST IPv6 /125 SUBNET'
+
+    testphpipam.delete_subnet(ip_network('2001::40/125'))
+    subnet = testphpipam.get_subnet_by_desc('TEST IPv6 /125 SUBNET')
+    assert subnet is None
+
+    testphpipam.delete_subnet(ip_network('10.2.0.0/29'), empty_subnet=True)
+    subnet = testphpipam.get_subnet_by_desc('TEST FULL /29 SUBNET')
+    assert subnet is None
+
+    with pytest.raises(ValueError):
+        testphpipam.delete_subnet(ip_network('2001:db8:ffff:ffff::/127'))
+
+    with pytest.raises(ValueError):
+        testphpipam.delete_subnet(ip_network('10.1.0.0/28'))
+
+    with pytest.raises(ValueError):
+        testphpipam.delete_subnet(ip_network('2001:db8:abcd::/64'))
+
+
 def test_get_next_free_ip(testphpipam):
     ip = testphpipam.get_next_free_ip(ip_network('10.1.0.0/28'))
     assert ip.ip == ip_address('10.1.0.4')
