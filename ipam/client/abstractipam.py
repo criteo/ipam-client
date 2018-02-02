@@ -23,6 +23,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def delete_subnet(self, subnet, empty_subnet):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_hostname_by_ip(self, ip):
         raise NotImplementedError()
 

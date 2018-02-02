@@ -258,6 +258,48 @@ class PHPIPAM(AbstractIPAM):
         self.db.commit()
         return True
 
+    def _empty_subnet(self, subnet_id):
+        """
+        Delete all IP addresses within a subnet
+        """
+        self.cur.execute("DELETE FROM ipaddresses \
+                         WHERE subnetId = %d"
+                         % subnet_id)
+
+    def delete_subnet(self, subnet, empty_subnet=False):
+        """
+        Delete a subnet in IPAM. subnet must be an
+        instance of ip_network with correct prefix length.
+        If empty_subnet is True, we will remove all IP addresses
+        in the subnet. Otherwise, we will raise an exception.
+        """
+        subnet_id = self.find_subnet_id(subnet)
+        if subnet_id is None:
+            raise ValueError("Unable to get subnet id from database"
+                             "for subnet %s/%s"
+                             % (subnet.network_address,
+                                subnet.prefixlen))
+        ip_list = self.get_allocated_ips_by_subnet_id(subnet_id)
+        if ip_list:
+            # We have IP addresses in our subnet
+            if empty_subnet:
+                self._empty_subnet(subnet_id)
+            else:
+                raise ValueError("Subnet %s/%s is not empty"
+                                 % (subnet.network_address,
+                                    subnet.prefixlen))
+        children_subnets = self._get_allocated_subnets(subnet_id)
+        if children_subnets:
+            # The subnet we are trying to delete is master for other subnets
+            raise ValueError("Subnet %s/%s has children subnets"
+                             % (subnet.network_address,
+                                subnet.prefixlen))
+        self.cur.execute("DELETE FROM subnets \
+                         WHERE id=%d"
+                         % subnet_id)
+        self.db.commit()
+        return True
+
     def get_hostname_by_ip(self, ip):
         self.cur.execute("SELECT dns_name FROM ipaddresses \
                          WHERE ip_addr='%d'"
