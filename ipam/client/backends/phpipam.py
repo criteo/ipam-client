@@ -204,23 +204,20 @@ class PHPIPAM(AbstractIPAM):
         """
         Find next free prefixlen-wide subnet in a given subnet.
         """
-        allocated_subnets = self._get_allocated_subnets(
-            subnet_id, prefixlen)
+        allocated_subnets = self._get_allocated_subnets(subnet_id)
 
         for candidate_subnet in subnet.subnets(new_prefix=prefixlen):
-            is_overlapping = False
             # A candidate subnet is free if it doesn't overlap any other
             # allocated subnet
             for allocated_subnet in allocated_subnets:
                 if candidate_subnet.overlaps(allocated_subnet):
-                    is_overlapping = True
                     # Since one subnet is overlapping, don't check the others
                     break
-            if not is_overlapping:
+            else:
                 return candidate_subnet
         return None
 
-    def _get_allocated_subnets(self, subnet_id, prefixlen):
+    def _get_allocated_subnets(self, subnet_id):
         """
         Return list of unavailable children subnets in a parent subnet,
         given its id.
