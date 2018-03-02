@@ -137,9 +137,8 @@ class PHPIPAM(AbstractIPAM):
                 return ip_interface("%s/%d" % (candidate_ip,
                                                subnet.prefixlen))
         raise ValueError("Subnet %s/%s is full"
-                            % (subnet.network_address,
-                               subnet.prefixlen))
-
+                         % (subnet.network_address,
+                            subnet.prefixlen))
 
     def get_allocated_ips_by_subnet_id(self, subnetid):
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
