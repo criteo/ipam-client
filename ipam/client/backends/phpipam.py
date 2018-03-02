@@ -128,25 +128,17 @@ class PHPIPAM(AbstractIPAM):
                              "for subnet %s/%s"
                              % (subnet.network_address,
                                 subnet.prefixlen))
-        # Create hosts list in subnet
-        subnetips = subnet.hosts()
         # Get allocated ip addresses from database
         usedips = self.get_allocated_ips_by_subnet_id(subnetid)
 
-        subnetips = set(subnetips)
-        usedips = set(usedips)
-        # Compute the difference between sets, aka available ip addresses set
-        availableips = subnetips.difference(usedips)
-        # Make a list from the set so we can sort it
-        availableips = list(availableips)
-        availableips.sort()
-        if len(availableips) <= 0:
-            raise ValueError("Subnet %s/%s is full"
-                             % (subnet.network_address,
-                                subnet.prefixlen))
-        # Return first available ip address in the list
-        return ip_interface("%s/%d" % (availableips[0],
-                                       subnet.prefixlen))
+        for candidate_ip in subnet.hosts():
+            if candidate_ip not in usedips:
+                # Return first available ip address in the subnet
+                return ip_interface("%s/%d" % (candidate_ip,
+                                               subnet.prefixlen))
+        raise ValueError("Subnet %s/%s is full"
+                         % (subnet.network_address,
+                            subnet.prefixlen))
 
     def get_allocated_ips_by_subnet_id(self, subnetid):
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
