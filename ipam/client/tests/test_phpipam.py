@@ -689,3 +689,10 @@ def test_get_description_by_ip(testphpipam):
         ip_address('1.1.1.1')) is None
     assert testphpipam.get_description_by_ip(
         ip_address('10.2.0.2')) == 'test ip group 1'
+
+
+def test_edit_ip_description(testphpipam):
+    testphpipam.edit_ip_description(ip_interface('10.1.0.1/28'),
+                                    'test ip #1 - changed')
+    assert testphpipam.get_description_by_ip(
+        ip_address('10.1.0.1')) == 'test ip #1 - changed'
