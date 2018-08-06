@@ -224,6 +224,30 @@ class PHPIPAM(AbstractIPAM):
         ]
         return allocated_subnets
 
+    def edit_ip_description(self, ipaddress, description):
+        """Edit an IP address description in IPAM. ipaddress must be an
+        instance of ip_interface with correct prefix length.
+        """
+        subnetid = self.find_subnet_id(ipaddress)
+        if subnetid is None:
+            raise ValueError("Unable to get subnet id from database "
+                             "for subnet %s/%s"
+                             % (ipaddress.network.network_address,
+                                ipaddress.network.prefixlen))
+        self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (ipaddress.ip, subnetid))
+        row = self.cur.fetchone()
+        if row is None:
+            raise ValueError("IP address %s not present"
+                             % (ipaddress.ip))
+        self.cur.execute("UPDATE ipaddresses \
+                         SET description='%s' \
+                         WHERE ip_addr='%d' AND subnetId=%d"
+                         % (description, ipaddress.ip, subnetid))
+        self.db.commit()
+        return True
+
     def delete_ip(self, ipaddress):
         """Delete an IP address in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
