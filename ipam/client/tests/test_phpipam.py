@@ -696,3 +696,13 @@ def test_edit_ip_description(testphpipam):
                                     'test ip #1 - changed')
     assert testphpipam.get_description_by_ip(
         ip_address('10.1.0.1')) == 'test ip #1 - changed'
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('10.1.0.4/28'),
+                                        'err')
+    assert "not present" in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('1.2.3.4/28'),
+                                        'err')
+    assert "Unable to get subnet id" in str(excinfo.value)
