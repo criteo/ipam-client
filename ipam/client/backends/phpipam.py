@@ -149,7 +149,7 @@ class PHPIPAM(AbstractIPAM):
 
     def add_top_level_subnet(self, subnet, description):
         """
-        Add  top level (without any parent) subnet.
+        Add top level (without any parent) subnet.
 
         :param subnet: subnet (ip_network format)
         :param description: subnet description
