@@ -284,6 +284,26 @@ def test_add_next_ip(testphpipam):
     assert "is full" in str(excinfo.value)
 
 
+def test_add_top_level_subnet(testphpipam):
+    subnet4 = ip_network('99.99.99.0/30')
+    subnet6 = ip_network('2001:db9:42::/48')
+    description4 = "TEST_IPV4"
+    description6 = "TEST_IPV6"
+    testphpipam.add_top_level_subnet(subnet4, description4)
+    test_subnet4 = testphpipam.get_subnet_by_desc(description4)
+    assert test_subnet4['subnet'] == subnet4
+    assert test_subnet4['description'] == description4
+
+    testphpipam.add_top_level_subnet(subnet6, description6)
+    test_subnet6 = testphpipam.get_subnet_by_desc(description6)
+    assert test_subnet6['subnet'] == subnet6
+    assert test_subnet6['description'] == description6
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.add_top_level_subnet(subnet4, 'err')
+    assert "already registered" in str(excinfo.value)
+
+
 def test_add_next_subnet(testphpipam):
     parent_subnet4 = ip_network('10.10.0.0/24')
     parent_subnet6 = ip_network('2001:db8:42::/48')

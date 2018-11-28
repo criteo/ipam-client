@@ -147,6 +147,40 @@ class PHPIPAM(AbstractIPAM):
         iplist = [ip_address(int(ip[0])) for ip in self.cur]
         return iplist
 
+    def add_top_level_subnet(self, subnet, description):
+        """
+        Add  top level (without any parent) subnet.
+
+        :param subnet: subnet (ip_network format)
+        :param description: subnet description
+        :return: True
+        """
+
+        # Check if subnet exist
+        self.cur.execute("SELECT subnet FROM subnets \
+                         WHERE subnet='{}'"
+                         .format(int(subnet.network_address)))
+        row = self.cur.fetchone()
+        if row is not None:
+            raise ValueError("Subnet {} already registered".format(subnet))
+
+        self.cur.execute(
+            'INSERT INTO subnets '
+            '(subnet, mask, sectionId, description, vrfId, '
+            'masterSubnetId, vlanId, permissions) '
+            'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
+            '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
+                int(subnet.network_address),
+                subnet.prefixlen,
+                self.section_id,
+                description,
+                self.subnet_options['vrf_id'],
+                0,
+                self.subnet_options['vlan_id'],
+                self.subnet_options['permissions']))
+
+        return True
+
     def add_next_subnet(self, parent_subnet, prefixlen, description):
         """
         Find a subnet prefixlen-wide in parent_subnet, insert it into IPAM,

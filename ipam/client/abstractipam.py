@@ -19,6 +19,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def add_top_level_subnet(self, subnet, description):
+        raise NotImplementedError()
+
+    @abstractmethod
     def add_next_subnet(self, parent_subnet, prefixlen, description):
         raise NotImplementedError()
 
