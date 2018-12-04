@@ -89,7 +89,8 @@ def test_get_section_id(testphpipam):
 
 
 def test_find_subnet_id(testphpipam):
-    assert testphpipam.find_subnet_id(ip_interface('10.42.0.0/16')) is None
+    with pytest.raises(ValueError):
+        testphpipam.find_subnet_id(ip_interface('10.42.0.0/16'))
     assert testphpipam.find_subnet_id(ip_interface('10.2.0.0/29')) == 2
 
 
