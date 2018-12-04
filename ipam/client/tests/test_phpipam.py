@@ -727,3 +727,18 @@ def test_edit_ip_description(testphpipam):
         testphpipam.edit_ip_description(ip_interface('1.2.3.4/28'),
                                         'err')
     assert "Unable to get subnet id" in str(excinfo.value)
+
+
+def test_edit_subnet_description(testphpipam):
+    subnet = ip_network('10.1.0.0/28')
+    description = 'TEST /28 SUBNET EDITED'
+
+    testphpipam.edit_subnet_description(subnet, description)
+
+    assert testphpipam.get_subnet_by_desc(description)['subnet'] == subnet
+
+    with pytest.raises(ValueError, match='description is empty'):
+        testphpipam.edit_subnet_description(subnet, '')
+
+    with pytest.raises(ValueError, match='Unable to get subnet id'):
+        testphpipam.edit_subnet_description(ip_network('10.42.0.0/29'), 'err')
