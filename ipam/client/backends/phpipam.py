@@ -80,17 +80,16 @@ class PHPIPAM(AbstractIPAM):
         row = self.cur.fetchone()
         if row is not None:
             return int(row[0])
-        return None
+
+        raise ValueError(
+            "Unable to get subnet id from database "
+            "for subnet {}".format(subnet)
+        )
 
     def add_ip(self, ipaddress, dnsname, description):
         """ Adds an IP address in IPAM. ipaddress must be an
         instance of ip_interface. Returns True """
         subnetid = self.find_subnet_id(ipaddress)
-        if subnetid is None:
-            raise ValueError("Unable to get subnet id from database "
-                             "for subnet %s/%s"
-                             % (ipaddress.network.network_address,
-                                ipaddress.network.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
                          % (ipaddress.ip, subnetid))
@@ -123,11 +122,6 @@ class PHPIPAM(AbstractIPAM):
         """
         # Find PHPIPAM subnet id
         subnetid = self.find_subnet_id(subnet)
-        if subnetid is None:
-            raise ValueError("Unable to get subnet id from database "
-                             "for subnet %s/%s"
-                             % (subnet.network_address,
-                                subnet.prefixlen))
         # Get allocated ip addresses from database
         usedips = self.get_allocated_ips_by_subnet_id(subnetid)
 
@@ -191,8 +185,9 @@ class PHPIPAM(AbstractIPAM):
                              'subnet with prefixlen {}!'
                              ''.format(parent_subnet, prefixlen))
 
-        parent_subnet_id = self.find_subnet_id(parent_subnet)
-        if not parent_subnet_id:
+        try:
+            parent_subnet_id = self.find_subnet_id(parent_subnet)
+        except ValueError:
             raise ValueError('Unable to get subnet id from database '
                              'for parent subnet {}'.format(parent_subnet))
 
@@ -263,11 +258,6 @@ class PHPIPAM(AbstractIPAM):
         instance of ip_interface with correct prefix length.
         """
         subnetid = self.find_subnet_id(ipaddress)
-        if subnetid is None:
-            raise ValueError("Unable to get subnet id from database "
-                             "for subnet %s/%s"
-                             % (ipaddress.network.network_address,
-                                ipaddress.network.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
                          % (ipaddress.ip, subnetid))
@@ -287,11 +277,6 @@ class PHPIPAM(AbstractIPAM):
         instance of ip_interface with correct prefix length.
         """
         subnetid = self.find_subnet_id(ipaddress)
-        if subnetid is None:
-            raise ValueError("Unable to get subnet id from database "
-                             "for subnet %s/%s"
-                             % (ipaddress.network.network_address,
-                                ipaddress.network.prefixlen))
         self.cur.execute("SELECT ip_addr FROM ipaddresses \
                          WHERE ip_addr='%d' AND subnetId=%d"
                          % (ipaddress.ip, subnetid))
@@ -321,11 +306,6 @@ class PHPIPAM(AbstractIPAM):
         in the subnet. Otherwise, we will raise an exception.
         """
         subnet_id = self.find_subnet_id(subnet)
-        if subnet_id is None:
-            raise ValueError("Unable to get subnet id from database"
-                             "for subnet %s/%s"
-                             % (subnet.network_address,
-                                subnet.prefixlen))
         ip_list = self.get_allocated_ips_by_subnet_id(subnet_id)
         if ip_list:
             # We have IP addresses in our subnet
