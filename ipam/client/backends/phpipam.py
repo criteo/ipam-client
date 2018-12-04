@@ -272,6 +272,22 @@ class PHPIPAM(AbstractIPAM):
         self.db.commit()
         return True
 
+    def edit_subnet_description(self, subnet, description):
+        """Edit a subnet description in IPAM. subnet must be an
+        instance of ip_network and the description must not be
+        empty.
+        """
+        if not description:
+            raise ValueError("The provided description is empty")
+
+        subnetid = self.find_subnet_id(subnet)
+        self.cur.execute(
+            "UPDATE subnets "
+            "SET description='{}'"
+            "WHERE id={}".format(description, subnetid)
+        )
+        self.db.commit()
+
     def delete_ip(self, ipaddress):
         """Delete an IP address in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
