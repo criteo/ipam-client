@@ -8,6 +8,7 @@ install:
 - pip install -r test-requirements.txt
 - pip install -r requirements.txt
 script:
+- pip install .
 - pylama
 - pytest -v --cov=ipam.client
 after_success: coveralls
@@ -18,3 +19,4 @@ deploy:
     secure: z1VA3tlsqRsvXMOM110B6V/xr7ZVuwz+itEdbISaSWoXw/0Rmz7GXSDs/qOJuDDz3cMJnA2vaU+dv9roYQAZNHxXtAd/a+5+jylRrYrKjebXzBfgb7xrPeD8wypNaPEB4HbcaRHafV4gP5aq0w3B94biGSLzRBMkDiwypxThAV/vf4Vika8z2cSgIXSXtnUHmo0N2W2QmpSdKSNUxVqaPY7e4f3D5Nl6/221BWfF4PI1s46LJGwOfCf0IVPfSiReFb1x4JyrDXax1tfPLaRp7NYgAB3fwcIZEf8UswbDnIx/q6LySLa9jR0dMUHJqLwMGVd7lSuRVjA/Siq6t06YVx0YdvpWXo32OKkLpy7ePQyy95tKtXfK3dowFY3QdZzzoLBhmZzaGamsjz5SpsbDZIMSkzuAcT/vsTntrmz9NSkMjNA6cIPnDtK3KaUJ7CC6uP79C9+qp7FqOJD2X8mJFvJAQKugXiyTgksg10ycLJeR4M7zNVrzplF1ba/I8Y1IYjb+UO8TLXjgefvM5CCyLMfRi9WeWOwz7RuIifMBiwuY18UESD0sWrUyKNo4deGR5AlO2cZARd9I0Rq8oc7GuCERIPROJJghB5lWbb9BRIHFbPjlFapjs48C/ctE3451Pmx6te2NowElJCdxtYyumRqqPxFfaf2//LrsL384edw=
   on:
     tags: true
+  skip_existing: true
