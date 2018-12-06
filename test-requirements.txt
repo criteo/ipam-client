@@ -1,4 +1,3 @@
-.
 pylama
 pytest
 pytest-cov
