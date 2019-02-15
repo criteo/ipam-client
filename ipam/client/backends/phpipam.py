@@ -14,6 +14,29 @@ DEFAULT_SUBNET_OPTIONS = {
 }
 
 
+class MySQLLock(object):
+    def __init__(self, ipam, tables_to_lock):
+        self.ipam = ipam
+        self.tables_to_lock = tables_to_lock
+
+    def __enter__(self):
+        if self.ipam.dbtype == 'mysql':
+            # Autocommit is disabled by default, but disable it explicitly
+            self.ipam.db.autocommit = False
+            self.ipam.db.start_transaction(isolation_level='SERIALIZABLE')
+            self.ipam.cur.execute(
+                'LOCK TABLES {} WRITE'.format(' '.join(self.tables_to_lock))
+            )
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        if self.ipam.dbtype == 'mysql':
+            if exception_type:
+                self.ipam.db.rollback()
+            else:
+                self.ipam.db.commit()
+                self.ipam.cur.execute('UNLOCK TABLES')
+
+
 class PHPIPAM(AbstractIPAM):
 
     def __init__(self, params):
@@ -89,29 +112,35 @@ class PHPIPAM(AbstractIPAM):
     def add_ip(self, ipaddress, dnsname, description):
         """ Adds an IP address in IPAM. ipaddress must be an
         instance of ip_interface. Returns True """
-        subnetid = self.find_subnet_id(ipaddress)
-        self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                         WHERE ip_addr='%d' AND subnetId=%d"
-                         % (ipaddress.ip, subnetid))
-        row = self.cur.fetchone()
-        if row is not None:
-            raise ValueError("IP address %s already registered"
-                             % (ipaddress.ip))
-        self.cur.execute("INSERT INTO ipaddresses \
-                         (subnetId, ip_addr, description, dns_name) \
-                         VALUES (%d, '%d', '%s', '%s')"
-                         % (subnetid, ipaddress.ip,
-                            description, dnsname))
-        self.db.commit()
+        with MySQLLock(self, ['ipaddresses']):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is not None:
+                raise ValueError("IP address %s already registered"
+                                 % (ipaddress.ip))
+            self.cur.execute("INSERT INTO ipaddresses \
+                             (subnetId, ip_addr, description, dns_name) \
+                             VALUES (%d, '%d', '%s', '%s')"
+                             % (subnetid, ipaddress.ip,
+                                description, dnsname))
         return True
 
     def add_next_ip(self, subnet, dnsname, description):
         """ Finds next free ip in subnet, and adds it in IPAM.
         Returns IP address as ip_interface """
         try:
-            ipaddress = self.get_next_free_ip(subnet)
-            self.add_ip(ipaddress, dnsname, description)
-            return ipaddress
+            with MySQLLock(self, ['ipaddresses']):
+                ipaddress = self.get_next_free_ip(subnet)
+                subnetid = self.find_subnet_id(ipaddress)
+                self.cur.execute("INSERT INTO ipaddresses \
+                                 (subnetId, ip_addr, description, dns_name) \
+                                 VALUES (%d, '%d', '%s', '%s')"
+                                 % (subnetid, ipaddress.ip,
+                                    description, dnsname))
+                return ipaddress
         except ValueError as e:
             raise ValueError("Unable to add next IP in %s: %s" % (
                 subnet, str(e)))
@@ -135,9 +164,12 @@ class PHPIPAM(AbstractIPAM):
                             subnet.prefixlen))
 
     def get_allocated_ips_by_subnet_id(self, subnetid):
-        self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                         WHERE subnetId=%d ORDER BY ip_addr ASC"
-                         % (subnetid))
+        request_suffix = ''
+        if self.dbtype == 'mysql':
+            request_suffix = ' FOR UPDATE'
+        self.cur.execute('SELECT ip_addr FROM ipaddresses '
+                         'WHERE subnetId={} ORDER BY ip_addr ASC{}'
+                         ''.format(subnetid, request_suffix))
         iplist = [ip_address(int(ip[0])) for ip in self.cur]
         return iplist
 
@@ -149,29 +181,29 @@ class PHPIPAM(AbstractIPAM):
         :param description: subnet description
         :return: True
         """
+        with MySQLLock(self, ['subnets']):
+            # Check if subnet exist
+            self.cur.execute("SELECT subnet FROM subnets \
+                             WHERE subnet='{}'"
+                             .format(int(subnet.network_address)))
+            row = self.cur.fetchone()
+            if row is not None:
+                raise ValueError("Subnet {} already registered".format(subnet))
 
-        # Check if subnet exist
-        self.cur.execute("SELECT subnet FROM subnets \
-                         WHERE subnet='{}'"
-                         .format(int(subnet.network_address)))
-        row = self.cur.fetchone()
-        if row is not None:
-            raise ValueError("Subnet {} already registered".format(subnet))
-
-        self.cur.execute(
-            'INSERT INTO subnets '
-            '(subnet, mask, sectionId, description, vrfId, '
-            'masterSubnetId, vlanId, permissions) '
-            'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
-            '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
-                int(subnet.network_address),
-                subnet.prefixlen,
-                self.section_id,
-                description,
-                self.subnet_options['vrf_id'],
-                0,
-                self.subnet_options['vlan_id'],
-                self.subnet_options['permissions']))
+            self.cur.execute(
+                'INSERT INTO subnets '
+                '(subnet, mask, sectionId, description, vrfId, '
+                'masterSubnetId, vlanId, permissions) '
+                'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
+                '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
+                    int(subnet.network_address),
+                    subnet.prefixlen,
+                    self.section_id,
+                    description,
+                    self.subnet_options['vrf_id'],
+                    0,
+                    self.subnet_options['vlan_id'],
+                    self.subnet_options['permissions']))
 
         return True
 
@@ -180,46 +212,49 @@ class PHPIPAM(AbstractIPAM):
         Find a subnet prefixlen-wide in parent_subnet, insert it into IPAM,
         and return it.
         """
-        if prefixlen <= parent_subnet.prefixlen:
-            raise ValueError('Parent subnet {} is too small to add new '
-                             'subnet with prefixlen {}!'
-                             ''.format(parent_subnet, prefixlen))
+        with MySQLLock(self, ['subnets']):
+            if prefixlen <= parent_subnet.prefixlen:
+                raise ValueError('Parent subnet {} is too small to add new '
+                                 'subnet with prefixlen {}!'
+                                 ''.format(parent_subnet, prefixlen))
 
-        try:
-            parent_subnet_id = self.find_subnet_id(parent_subnet)
-        except ValueError:
-            raise ValueError('Unable to get subnet id from database '
-                             'for parent subnet {}'.format(parent_subnet))
+            try:
+                parent_subnet_id = self.find_subnet_id(parent_subnet)
+            except ValueError:
+                raise ValueError('Unable to get subnet id from database '
+                                 'for parent subnet {}'.format(parent_subnet))
 
-        parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
-            parent_subnet_id)
-        if len(parent_subnet_used_ips):
-            raise ValueError('Parent subnet {} must not contain any '
-                             'allocated IP address!'.format(parent_subnet))
+            parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
+                parent_subnet_id)
+            if len(parent_subnet_used_ips):
+                raise ValueError('Parent subnet {} must not contain any '
+                                 'allocated IP address!'
+                                 ''.format(parent_subnet))
 
-        subnet = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
-                                            prefixlen)
-        if not subnet:
-            raise ValueError('No more space to add a new subnet with '
-                             'prefixlen {} in {}!'.format(
-                                prefixlen, parent_subnet))
+            subnet = self._get_next_free_subnet(parent_subnet,
+                                                parent_subnet_id,
+                                                prefixlen)
+            if not subnet:
+                raise ValueError('No more space to add a new subnet with '
+                                 'prefixlen {} in {}!'.format(
+                                    prefixlen, parent_subnet))
 
-        # Everything is in order, insert our subnet in IPAM
-        self.cur.execute(
-            'INSERT INTO subnets '
-            '(subnet, mask, sectionId, description, vrfId, '
-            'masterSubnetId, vlanId, permissions) '
-            'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
-            '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
-                int(subnet.network_address),
-                subnet.prefixlen,
-                self.section_id,
-                description,
-                self.subnet_options['vrf_id'],
-                parent_subnet_id,
-                self.subnet_options['vlan_id'],
-                self.subnet_options['permissions']))
-        return subnet
+            # Everything is in order, insert our subnet in IPAM
+            self.cur.execute(
+                'INSERT INTO subnets '
+                '(subnet, mask, sectionId, description, vrfId, '
+                'masterSubnetId, vlanId, permissions) '
+                'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
+                '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
+                    int(subnet.network_address),
+                    subnet.prefixlen,
+                    self.section_id,
+                    description,
+                    self.subnet_options['vrf_id'],
+                    parent_subnet_id,
+                    self.subnet_options['vlan_id'],
+                    self.subnet_options['permissions']))
+            return subnet
 
     def _get_next_free_subnet(self, subnet, subnet_id, prefixlen):
         """
@@ -257,19 +292,19 @@ class PHPIPAM(AbstractIPAM):
         """Edit an IP address description in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
         """
-        subnetid = self.find_subnet_id(ipaddress)
-        self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                         WHERE ip_addr='%d' AND subnetId=%d"
-                         % (ipaddress.ip, subnetid))
-        row = self.cur.fetchone()
-        if row is None:
-            raise ValueError("IP address %s not present"
-                             % (ipaddress.ip))
-        self.cur.execute("UPDATE ipaddresses \
-                         SET description='%s' \
-                         WHERE ip_addr='%d' AND subnetId=%d"
-                         % (description, ipaddress.ip, subnetid))
-        self.db.commit()
+        with MySQLLock(self, ['ipaddresses']):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError("IP address %s not present"
+                                 % (ipaddress.ip))
+            self.cur.execute("UPDATE ipaddresses \
+                             SET description='%s' \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (description, ipaddress.ip, subnetid))
         return True
 
     def edit_subnet_description(self, subnet, description):
@@ -280,39 +315,40 @@ class PHPIPAM(AbstractIPAM):
         if not description:
             raise ValueError("The provided description is empty")
 
-        subnetid = self.find_subnet_id(subnet)
-        self.cur.execute(
-            "UPDATE subnets "
-            "SET description='{}'"
-            "WHERE id={}".format(description, subnetid)
-        )
-        self.db.commit()
+        with MySQLLock(self, ['subnets']):
+            subnetid = self.find_subnet_id(subnet)
+            self.cur.execute(
+                "UPDATE subnets "
+                "SET description='{}'"
+                "WHERE id={}".format(description, subnetid)
+            )
 
     def delete_ip(self, ipaddress):
         """Delete an IP address in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
         """
-        subnetid = self.find_subnet_id(ipaddress)
-        self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                         WHERE ip_addr='%d' AND subnetId=%d"
-                         % (ipaddress.ip, subnetid))
-        row = self.cur.fetchone()
-        if row is None:
-            raise ValueError("IP address %s not present"
-                             % (ipaddress.ip))
-        self.cur.execute("DELETE from ipaddresses \
-                         WHERE ip_addr='%d' AND subnetId=%d"
-                         % (ipaddress.ip, subnetid))
-        self.db.commit()
+        with MySQLLock(self, ['ipaddresses']):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError("IP address %s not present"
+                                 % (ipaddress.ip))
+            self.cur.execute("DELETE from ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
         return True
 
     def _empty_subnet(self, subnet_id):
         """
         Delete all IP addresses within a subnet
         """
-        self.cur.execute("DELETE FROM ipaddresses \
-                         WHERE subnetId = %d"
-                         % subnet_id)
+        with MySQLLock(self, ['ipaddresses']):
+            self.cur.execute("DELETE FROM ipaddresses \
+                             WHERE subnetId = %d"
+                             % subnet_id)
 
     def delete_subnet(self, subnet, empty_subnet=False):
         """
@@ -321,26 +357,27 @@ class PHPIPAM(AbstractIPAM):
         If empty_subnet is True, we will remove all IP addresses
         in the subnet. Otherwise, we will raise an exception.
         """
-        subnet_id = self.find_subnet_id(subnet)
-        ip_list = self.get_allocated_ips_by_subnet_id(subnet_id)
-        if ip_list:
-            # We have IP addresses in our subnet
-            if empty_subnet:
-                self._empty_subnet(subnet_id)
-            else:
-                raise ValueError("Subnet %s/%s is not empty"
+        with MySQLLock(self, ['subnets']):
+            subnet_id = self.find_subnet_id(subnet)
+            ip_list = self.get_allocated_ips_by_subnet_id(subnet_id)
+            if ip_list:
+                # We have IP addresses in our subnet
+                if empty_subnet:
+                    self._empty_subnet(subnet_id)
+                else:
+                    raise ValueError("Subnet %s/%s is not empty"
+                                     % (subnet.network_address,
+                                        subnet.prefixlen))
+            children_subnets = self._get_allocated_subnets(subnet_id)
+            if children_subnets:
+                # The subnet we are trying to delete
+                # is master for other subnets
+                raise ValueError("Subnet %s/%s has children subnets"
                                  % (subnet.network_address,
                                     subnet.prefixlen))
-        children_subnets = self._get_allocated_subnets(subnet_id)
-        if children_subnets:
-            # The subnet we are trying to delete is master for other subnets
-            raise ValueError("Subnet %s/%s has children subnets"
-                             % (subnet.network_address,
-                                subnet.prefixlen))
-        self.cur.execute("DELETE FROM subnets \
-                         WHERE id=%d"
-                         % subnet_id)
-        self.db.commit()
+            self.cur.execute("DELETE FROM subnets \
+                             WHERE id=%d"
+                             % subnet_id)
         return True
 
     def get_hostname_by_ip(self, ip):
