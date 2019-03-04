@@ -13,20 +13,27 @@ DEFAULT_SUBNET_OPTIONS = {
     'vrf_id': 0,
 }
 
+LOCK_NAME = 'ipam_client_lock'
+LOCK_TIMEOUT = 5
+
 
 class MySQLLock(object):
-    def __init__(self, ipam, tables_to_lock):
+    def __init__(self, ipam):
         self.ipam = ipam
-        self.tables_to_lock = tables_to_lock
 
     def __enter__(self):
         if self.ipam.dbtype == 'mysql':
-            # Autocommit is disabled by default, but disable it explicitly
+            # Disable autocommit during writes for transactional behavior
             self.ipam.db.autocommit = False
             self.ipam.db.start_transaction(isolation_level='SERIALIZABLE')
-            self.ipam.cur.execute(
-                'LOCK TABLES {} WRITE'.format(' '.join(self.tables_to_lock))
-            )
+            self.ipam.cur.execute('SELECT GET_LOCK("{}", {})'.format(
+                LOCK_NAME, LOCK_TIMEOUT))
+            row = self.ipam.cur.fetchone()
+
+            if not row[0]:
+                e = 'Could not obtain lock within {} seconds.'.format(
+                    LOCK_TIMEOUT)
+                raise RuntimeError(e)
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         if self.ipam.dbtype == 'mysql':
@@ -34,7 +41,9 @@ class MySQLLock(object):
                 self.ipam.db.rollback()
             else:
                 self.ipam.db.commit()
-                self.ipam.cur.execute('UNLOCK TABLES')
+            self.ipam.cur.execute('SELECT RELEASE_LOCK("{}")'.format(
+                LOCK_NAME))
+            self.ipam.db.autocommit = True
 
 
 class PHPIPAM(AbstractIPAM):
@@ -63,6 +72,8 @@ class PHPIPAM(AbstractIPAM):
                 password=params['password'],
                 database=params['database_name']
             )
+            # Enable autocommit for reads to prevent entering transaction
+            self.db.autocommit = True
         else:
             raise ValueError('Unsupported database driver')
         self.cur = self.db.cursor()
@@ -112,7 +123,7 @@ class PHPIPAM(AbstractIPAM):
     def add_ip(self, ipaddress, dnsname, description):
         """ Adds an IP address in IPAM. ipaddress must be an
         instance of ip_interface. Returns True """
-        with MySQLLock(self, ['ipaddresses']):
+        with MySQLLock(self):
             subnetid = self.find_subnet_id(ipaddress)
             self.cur.execute("SELECT ip_addr FROM ipaddresses \
                              WHERE ip_addr='%d' AND subnetId=%d"
@@ -132,7 +143,7 @@ class PHPIPAM(AbstractIPAM):
         """ Finds next free ip in subnet, and adds it in IPAM.
         Returns IP address as ip_interface """
         try:
-            with MySQLLock(self, ['ipaddresses']):
+            with MySQLLock(self):
                 ipaddress = self.get_next_free_ip(subnet)
                 subnetid = self.find_subnet_id(ipaddress)
                 self.cur.execute("INSERT INTO ipaddresses \
@@ -181,7 +192,7 @@ class PHPIPAM(AbstractIPAM):
         :param description: subnet description
         :return: True
         """
-        with MySQLLock(self, ['subnets']):
+        with MySQLLock(self):
             # Check if subnet exist
             self.cur.execute("SELECT subnet FROM subnets \
                              WHERE subnet='{}'"
@@ -212,7 +223,7 @@ class PHPIPAM(AbstractIPAM):
         Find a subnet prefixlen-wide in parent_subnet, insert it into IPAM,
         and return it.
         """
-        with MySQLLock(self, ['subnets']):
+        with MySQLLock(self):
             if prefixlen <= parent_subnet.prefixlen:
                 raise ValueError('Parent subnet {} is too small to add new '
                                  'subnet with prefixlen {}!'
@@ -292,7 +303,7 @@ class PHPIPAM(AbstractIPAM):
         """Edit an IP address description in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
         """
-        with MySQLLock(self, ['ipaddresses']):
+        with MySQLLock(self):
             subnetid = self.find_subnet_id(ipaddress)
             self.cur.execute("SELECT ip_addr FROM ipaddresses \
                              WHERE ip_addr='%d' AND subnetId=%d"
@@ -315,7 +326,7 @@ class PHPIPAM(AbstractIPAM):
         if not description:
             raise ValueError("The provided description is empty")
 
-        with MySQLLock(self, ['subnets']):
+        with MySQLLock(self):
             subnetid = self.find_subnet_id(subnet)
             self.cur.execute(
                 "UPDATE subnets "
@@ -327,7 +338,7 @@ class PHPIPAM(AbstractIPAM):
         """Delete an IP address in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
         """
-        with MySQLLock(self, ['ipaddresses']):
+        with MySQLLock(self):
             subnetid = self.find_subnet_id(ipaddress)
             self.cur.execute("SELECT ip_addr FROM ipaddresses \
                              WHERE ip_addr='%d' AND subnetId=%d"
@@ -345,7 +356,7 @@ class PHPIPAM(AbstractIPAM):
         """
         Delete all IP addresses within a subnet
         """
-        with MySQLLock(self, ['ipaddresses']):
+        with MySQLLock(self):
             self.cur.execute("DELETE FROM ipaddresses \
                              WHERE subnetId = %d"
                              % subnet_id)
@@ -357,7 +368,7 @@ class PHPIPAM(AbstractIPAM):
         If empty_subnet is True, we will remove all IP addresses
         in the subnet. Otherwise, we will raise an exception.
         """
-        with MySQLLock(self, ['subnets']):
+        with MySQLLock(self):
             subnet_id = self.find_subnet_id(subnet)
             ip_list = self.get_allocated_ips_by_subnet_id(subnet_id)
             if ip_list:
