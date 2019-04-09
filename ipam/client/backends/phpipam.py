@@ -218,6 +218,54 @@ class PHPIPAM(AbstractIPAM):
 
         return True
 
+    def add_subnet(self, subnet, parent_subnet, description):
+        """
+        Add a subnet if can be inserted in parent subnet.
+        """
+        subnet_len = subnet.prefixlen
+        children_subnets = list(parent_subnet.subnets(new_prefix=subnet_len))
+        # TODO: use supernet_of or subnet_of (Python 3.7)
+        if subnet not in children_subnets:
+            raise ValueError('Subnet {} is not a child of {}'.format(
+                subnet,
+                parent_subnet,
+            ))
+
+        parent_subnet_id = self.find_subnet_id(parent_subnet)
+        if not parent_subnet_id:
+            raise ValueError('Unable to get subnet id from database '
+                             'for parent subnet {}'.format(parent_subnet))
+
+        parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
+            parent_subnet_id)
+        if len(parent_subnet_used_ips):
+            raise ValueError('Parent subnet {} must not contain any '
+                             'allocated IP address!'.format(parent_subnet))
+
+        _subnet = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
+                                             subnet_len)
+        if not _subnet:
+            raise ValueError('No more space to add a new subnet with '
+                             'prefixlen {} in {}!'.format(
+                                subnet_len, parent_subnet))
+
+        # Everything is in order, insert our subnet in IPAM
+        self.cur.execute(
+            'INSERT INTO subnets '
+            '(subnet, mask, sectionId, description, vrfId, '
+            'masterSubnetId, vlanId, permissions) '
+            'VALUES (\'{:d}\', \'{}\', \'{}\', \'{}\', '
+            '\'{}\', \'{}\', \'{}\', \'{}\')'.format(
+                int(subnet.network_address),
+                subnet.prefixlen,
+                self.section_id,
+                description,
+                self.subnet_options['vrf_id'],
+                parent_subnet_id,
+                self.subnet_options['vlan_id'],
+                self.subnet_options['permissions']))
+        return subnet
+
     def add_next_subnet(self, parent_subnet, prefixlen, description):
         """
         Find a subnet prefixlen-wide in parent_subnet, insert it into IPAM,
