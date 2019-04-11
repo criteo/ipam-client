@@ -752,6 +752,20 @@ def test_get_subnet_by_desc(testphpipam):
     assert subnet['description'] == 'TEST /31 SUBNET GROUP'
 
 
+def test_get_children_subnet_list(testphpipam):
+    unknown_parent_subnet = ip_network('9.9.9.0/24')
+    assert testphpipam.get_children_subnet_list(unknown_parent_subnet) == []
+    parent_subnet4 = ip_network('10.10.0.0/24')
+    subnetlist = testphpipam.get_children_subnet_list(parent_subnet4)
+    assert subnetlist == []
+    parent_subnet6 = ip_network('2001:db8:abcd::/64')
+    subnetlist = testphpipam.get_children_subnet_list(parent_subnet6)
+    assert subnetlist == [{'subnet': ip_network('2001:db8:abcd::/127'),
+                           'description': 'TEST IPv6 /127 CHILDREN SUBNET'},
+                          {'subnet': ip_network('2001:db8:abcd::2/127'),
+                           'description': 'TEST IPv6 /127 CHILDREN SUBNET #2'}]
+
+
 def test_get_subnet_list_by_desc(testphpipam):
     assert testphpipam.get_subnet_list_by_desc('unknown subnet') == []
     subnetlist = testphpipam.get_subnet_list_by_desc('TEST /28 SUBNET')
