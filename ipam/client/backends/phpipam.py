@@ -560,6 +560,23 @@ class PHPIPAM(AbstractIPAM):
         else:
             return iplist[0]
 
+    def get_children_subnet_list(self, parent_subnet):
+        netlist = list()
+        try:
+            parent_subnet_id = self.find_subnet_id(parent_subnet)
+        except ValueError:
+            return netlist
+        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+                         WHERE masterSubnetId = '%i'"
+                         % parent_subnet_id)
+        for row in self.cur:
+            item = {}
+            subnet = str(ip_address(int(row[0])))
+            item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
+            item['description'] = row[2]
+            netlist.append(item)
+        return netlist
+
     def get_subnet_list_by_desc(self, description):
         self.cur.execute("SELECT subnet,mask,description FROM subnets \
                          WHERE description LIKE '%s'"
