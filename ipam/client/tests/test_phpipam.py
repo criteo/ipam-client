@@ -314,6 +314,10 @@ def test_add_subnet(testphpipam):
         {
             'parent': ip_network('2001:db8:42::/48'),
             'child': ip_network('2001:db8:42:ba00::/56')
+        },
+        {
+            'parent': ip_network('2001:db8:abcd::/64'),
+            'child': ip_network('2001:db8:abcd::ffff:ffff:ffff:fffe/127')
         }
     ]
     for subnet in ok_subnets:
@@ -345,15 +349,15 @@ def test_add_subnet(testphpipam):
         testphpipam.add_next_subnet(ok_subnets[0]['parent'], 25, 'err')
     assert 'No more space to add a new subnet' in str(excinfo.value)
 
-    parent = ip_network('10.0.0.0/8')
-    child = ip_network('192.168.0.0/24')
+    parent = ip_network('2001:db8:abcd::/64')
+    child = ip_network('fe80::/128')
     with pytest.raises(ValueError) as excinfo:
         test_subnet = testphpipam.add_subnet(
             child,
             parent,
             'not a child',
         )
-    assert 'is not a child of' in str(excinfo.value)
+    assert ' is not a child of ' in str(excinfo.value)
 
     parent = ip_network('1.1.1.0/24')
     child = ip_network('1.1.1.0/28')
@@ -369,7 +373,7 @@ def test_add_subnet(testphpipam):
     child_subnet = ip_network('10.42.0.0/24')
     with pytest.raises(ValueError) as excinfo:
         testphpipam.add_subnet(child_subnet, parent_subnet, 'err')
-    assert 'new prefix must be longer' in str(excinfo.value)
+    assert 'Unable to get subnet id from database ' in str(excinfo.value)
 
     parent_subnet = ip_network('10.10.0.0/24')
     testphpipam.add_next_ip(parent_subnet, 'test ip', 'test ip')
@@ -380,7 +384,7 @@ def test_add_subnet(testphpipam):
             parent_subnet,
             'err',
         )
-    assert 'must not contain any allocated IP address' in str(excinfo.value)
+    assert 'Candidate subnet overlaps with ' in str(excinfo.value)
 
 
 def test_add_next_subnet(testphpipam):
