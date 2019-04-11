@@ -222,19 +222,24 @@ class PHPIPAM(AbstractIPAM):
         """
         Add a subnet if can be inserted in parent subnet.
         """
+        parent_subnet_id = self.find_subnet_id(parent_subnet)
+        if not parent_subnet_id:
+            raise ValueError('Unable to get subnet id from database '
+                             'for parent subnet {}'.format(parent_subnet))
+
         subnet_len = subnet.prefixlen
-        children_subnets = list(parent_subnet.subnets(new_prefix=subnet_len))
-        # TODO: use supernet_of or subnet_of (Python 3.7)
-        if subnet not in children_subnets:
+        if not subnet.overlaps(parent_subnet):
             raise ValueError('Subnet {} is not a child of {}'.format(
                 subnet,
                 parent_subnet,
             ))
 
-        parent_subnet_id = self.find_subnet_id(parent_subnet)
-        if not parent_subnet_id:
-            raise ValueError('Unable to get subnet id from database '
-                             'for parent subnet {}'.format(parent_subnet))
+        children_subnets = self.get_children_subnet_list(parent_subnet)
+        for children_subnet in children_subnets:
+            if children_subnet['subnet'].overlaps(subnet):
+                raise ValueError('Candidate subnet overlaps with {}'.format(
+                    children_subnet['description']
+                ))
 
         parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
             parent_subnet_id)
