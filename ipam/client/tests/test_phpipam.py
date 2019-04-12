@@ -351,29 +351,21 @@ def test_add_subnet(testphpipam):
 
     parent = ip_network('2001:db8:abcd::/64')
     child = ip_network('fe80::/128')
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match=' is not a child of '):
         test_subnet = testphpipam.add_subnet(
             child,
             parent,
             'not a child',
         )
-    assert ' is not a child of ' in str(excinfo.value)
 
     parent = ip_network('1.1.1.0/24')
     child = ip_network('1.1.1.0/28')
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match='Unable to get subnet id from database'):
         test_subnet = testphpipam.add_subnet(
             child,
             parent,
             'parent does not exist in DB',
         )
-    assert 'Unable to get subnet id from database' in str(excinfo.value)
-
-    parent_subnet = ip_network('10.42.0.0/25')
-    child_subnet = ip_network('10.42.0.0/24')
-    with pytest.raises(ValueError) as excinfo:
-        testphpipam.add_subnet(child_subnet, parent_subnet, 'err')
-    assert 'Unable to get subnet id from database ' in str(excinfo.value)
 
     parent_subnet = ip_network('10.10.0.0/24')
     testphpipam.add_next_ip(parent_subnet, 'test ip', 'test ip')
