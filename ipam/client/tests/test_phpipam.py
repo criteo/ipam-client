@@ -758,7 +758,8 @@ def test_get_subnet_by_desc(testphpipam):
 
 def test_get_children_subnet_list(testphpipam):
     unknown_parent_subnet = ip_network('9.9.9.0/24')
-    assert testphpipam.get_children_subnet_list(unknown_parent_subnet) == []
+    with pytest.raises(ValueError, match='Unable to get subnet id from database'):
+        testphpipam.get_children_subnet_list(unknown_parent_subnet)
     parent_subnet4 = ip_network('10.10.0.0/24')
     subnetlist = testphpipam.get_children_subnet_list(parent_subnet4)
     assert subnetlist == []

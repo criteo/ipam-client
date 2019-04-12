@@ -567,10 +567,7 @@ class PHPIPAM(AbstractIPAM):
 
     def get_children_subnet_list(self, parent_subnet):
         netlist = list()
-        try:
-            parent_subnet_id = self.find_subnet_id(parent_subnet)
-        except ValueError:
-            return netlist
+        parent_subnet_id = self.find_subnet_id(parent_subnet)
         self.cur.execute("SELECT subnet,mask,description FROM subnets \
                          WHERE masterSubnetId = '%i'"
                          % parent_subnet_id)
