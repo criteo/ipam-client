@@ -306,6 +306,13 @@ def test_add_top_level_subnet(testphpipam):
 
 
 def test_add_subnet(testphpipam):
+    parent_subnet = ip_network('10.10.0.0/24')
+    added_ip = testphpipam.add_next_ip(parent_subnet, 'test-ip', 'Test IP')
+    child_subnet = ip_network('10.10.0.0/28')
+    with pytest.raises(ValueError, match=' must not contain any '):
+        testphpipam.add_subnet(child_subnet, parent_subnet, 'occupied subnet')
+    testphpipam.delete_ip(added_ip)
+
     ok_subnets = [
         {
             'parent': ip_network('10.10.0.0/24'),
@@ -345,9 +352,8 @@ def test_add_subnet(testphpipam):
     assert test_subnet['subnet'] == target_subnet
     assert test_subnet['description'] == description
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match='No more space to add a new subnet'):
         testphpipam.add_next_subnet(ok_subnets[0]['parent'], 25, 'err')
-    assert 'No more space to add a new subnet' in str(excinfo.value)
 
     parent = ip_network('2001:db8:abcd::/64')
     child = ip_network('fe80::/128')
@@ -376,13 +382,12 @@ def test_add_subnet(testphpipam):
     parent_subnet = ip_network('10.10.0.0/24')
     testphpipam.add_next_ip(parent_subnet, 'test ip', 'test ip')
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError, match='Candidate subnet overlaps with '):
         testphpipam.add_subnet(
-            ip_network('10.10.0.0/25'),
+            ip_network('10.10.0.0/30'),
             parent_subnet,
             'err',
         )
-    assert 'Candidate subnet overlaps with ' in str(excinfo.value)
 
 
 def test_add_next_subnet(testphpipam):

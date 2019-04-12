@@ -223,9 +223,6 @@ class PHPIPAM(AbstractIPAM):
         Add a subnet if can be inserted in parent subnet.
         """
         parent_subnet_id = self.find_subnet_id(parent_subnet)
-        if not parent_subnet_id:
-            raise ValueError('Unable to get subnet id from database '
-                             'for parent subnet {}'.format(parent_subnet))
 
         subnet_len = subnet.prefixlen
         if not subnet.overlaps(parent_subnet):
@@ -243,16 +240,14 @@ class PHPIPAM(AbstractIPAM):
 
         parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
             parent_subnet_id)
-        if len(parent_subnet_used_ips):
+        if len(parent_subnet_used_ips) > 0:
             raise ValueError('Parent subnet {} must not contain any '
                              'allocated IP address!'.format(parent_subnet))
 
-        _subnet = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
-                                             subnet_len)
-        if not _subnet:
-            raise ValueError('No more space to add a new subnet with '
-                             'prefixlen {} in {}!'.format(
-                                subnet_len, parent_subnet))
+        # check if parent_subnet has enough
+        # space to add a subnet_len sized subbnet
+        _ = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
+                                       subnet_len)
 
         # Everything is in order, insert our subnet in IPAM
         self.cur.execute(
