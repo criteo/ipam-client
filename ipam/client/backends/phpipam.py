@@ -224,9 +224,14 @@ class PHPIPAM(AbstractIPAM):
         """
         parent_subnet_id = self.find_subnet_id(parent_subnet)
 
-        subnet_len = subnet.prefixlen
         if not subnet.overlaps(parent_subnet):
             raise ValueError('Subnet {} is not a child of {}'.format(
+                subnet,
+                parent_subnet,
+            ))
+
+        if subnet.prefixlen < parent_subnet.prefixlen:
+            raise ValueError('Candidate subnet {} bigger than {}'.format(
                 subnet,
                 parent_subnet,
             ))
@@ -235,7 +240,7 @@ class PHPIPAM(AbstractIPAM):
         for children_subnet in children_subnets:
             if children_subnet['subnet'].overlaps(subnet):
                 raise ValueError('Candidate subnet overlaps with {}'.format(
-                    children_subnet['description']
+                    children_subnet['subnet']
                 ))
 
         parent_subnet_used_ips = self.get_allocated_ips_by_subnet_id(
@@ -243,11 +248,6 @@ class PHPIPAM(AbstractIPAM):
         if len(parent_subnet_used_ips) > 0:
             raise ValueError('Parent subnet {} must not contain any '
                              'allocated IP address!'.format(parent_subnet))
-
-        # check if parent_subnet has enough
-        # space to add a subnet_len sized subbnet
-        _ = self._get_next_free_subnet(parent_subnet, parent_subnet_id,
-                                       subnet_len)
 
         # Everything is in order, insert our subnet in IPAM
         self.cur.execute(
