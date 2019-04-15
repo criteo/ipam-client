@@ -400,15 +400,6 @@ class PHPIPAM(AbstractIPAM):
                              % (ipaddress.ip, subnetid))
         return True
 
-    def _empty_subnet(self, subnet_id):
-        """
-        Delete all IP addresses within a subnet
-        """
-        with MySQLLock(self):
-            self.cur.execute("DELETE FROM ipaddresses \
-                             WHERE subnetId = %d"
-                             % subnet_id)
-
     def delete_subnet(self, subnet, empty_subnet=False):
         """
         Delete a subnet in IPAM. subnet must be an
@@ -422,7 +413,9 @@ class PHPIPAM(AbstractIPAM):
             if ip_list:
                 # We have IP addresses in our subnet
                 if empty_subnet:
-                    self._empty_subnet(subnet_id)
+                    self.cur.execute("DELETE FROM ipaddresses \
+                                     WHERE subnetId = %d"
+                                     % subnet_id)
                 else:
                     raise ValueError("Subnet %s/%s is not empty"
                                      % (subnet.network_address,
