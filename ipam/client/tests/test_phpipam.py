@@ -313,6 +313,10 @@ def test_add_subnet(testphpipam):
         testphpipam.add_subnet(child_subnet, parent_subnet, 'occupied subnet')
     testphpipam.delete_ip(added_ip)
 
+    child_subnet = ip_network('10.10.0.0/16')
+    with pytest.raises(ValueError, match=' bigger than '):
+        testphpipam.add_subnet(child_subnet, parent_subnet, 'bigger subnet')
+
     ok_subnets = [
         {
             'parent': ip_network('10.10.0.0/24'),
