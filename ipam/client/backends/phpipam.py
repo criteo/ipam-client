@@ -126,7 +126,7 @@ class PHPIPAM(AbstractIPAM):
         with MySQLLock(self):
             subnetid = self.find_subnet_id(ipaddress)
             self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                             WHERE ip_addr='%d' AND subnetId=%d"
+                             WHERE ip_addr='%d' AND subnetId=%d LIMIT 1"
                              % (ipaddress.ip, subnetid))
             row = self.cur.fetchone()
             if row is not None:
