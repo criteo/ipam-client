@@ -455,7 +455,8 @@ def test_delete_ip(testphpipam):
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
-                       'dnsname': 'test-ip-2'}]
+                       'dnsname': 'test-ip-2',
+                       'state': 1}]
     testphpipam.delete_ip(ip_interface('10.1.0.2/28'))
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == []
@@ -542,11 +543,13 @@ def test_get_ip_by_desc(testphpipam):
     assert testip['ip'] == ip_address('10.1.0.2')
     assert testip['description'] == 'test ip #2'
     assert testip['dnsname'] == 'test-ip-2'
+    assert testip['state'] == 1
 
     testip = testphpipam.get_ip_by_desc('test ip group 1')
     assert testip['ip'] == ip_address('10.2.0.1')
     assert testip['description'] == 'test ip group 1'
     assert testip['dnsname'] == 'test-ip-8'
+    assert testip['state'] == 1
 
 
 def test_get_ip_interface_by_desc(testphpipam):
@@ -576,15 +579,18 @@ def test_get_ip_list_by_desc(testphpipam):
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
-                       'dnsname': 'test-ip-2'}]
+                       'dnsname': 'test-ip-2',
+                       'state': 1}]
 
     iplist = testphpipam.get_ip_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_address('10.2.0.1'),
                        'description': 'test ip group 1',
-                       'dnsname': 'test-ip-8'},
+                       'dnsname': 'test-ip-8',
+                       'state': 1},
                       {'ip': ip_address('10.2.0.2'),
                        'description': 'test ip group 1',
-                       'dnsname': 'test-ip-9'}]
+                       'dnsname': 'test-ip-9',
+                       'state': 1}]
 
 
 def test_get_ip_interface_list_by_desc(testphpipam):
