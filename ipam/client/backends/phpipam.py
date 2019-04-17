@@ -51,6 +51,7 @@ class PHPIPAM(AbstractIPAM):
     def __init__(self, params):
         dbtype = DEFAULT_IPAM_DB_TYPE
         subnet_options = DEFAULT_SUBNET_OPTIONS.copy()
+        self.hostname_db_field = 'hostname'
         for (option, value) in DEFAULT_SUBNET_OPTIONS.items():
             param_name = 'subnet_{}'.format(option)
             if params.get(param_name):
@@ -79,6 +80,10 @@ class PHPIPAM(AbstractIPAM):
         self.cur = self.db.cursor()
         self.set_section_id_by_name(section_name)
 
+        if self._get_version() < 1.32:
+            # Older PHPIPAM version use `dns_name` field instead of `hostname`
+            self.hostname_db_field = 'dns_name'
+
     def set_section_id(self, section_id):
         self.section_id = section_id
 
@@ -92,6 +97,14 @@ class PHPIPAM(AbstractIPAM):
                 "Can't get section id matching %s" % (section_name)
             )
         self.set_section_id(row[0])
+
+    def _get_version(self):
+        with MySQLLock(self):
+            self.cur.execute('SELECT version FROM settings')
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError('Could not retrieve version from DB')
+            return float(row[0])
 
     def get_section_id(self):
         return self.section_id
@@ -133,10 +146,10 @@ class PHPIPAM(AbstractIPAM):
                 raise ValueError("IP address %s already registered"
                                  % (ipaddress.ip))
             self.cur.execute("INSERT INTO ipaddresses \
-                             (subnetId, ip_addr, description, hostname) \
+                             (subnetId, ip_addr, description, %s) \
                              VALUES (%d, '%d', '%s', '%s')"
-                             % (subnetid, ipaddress.ip,
-                                description, hostname))
+                             % (self.hostname_db_field, subnetid,
+                                ipaddress.ip, description, hostname))
         return True
 
     def add_next_ip(self, subnet, hostname, description):
@@ -147,10 +160,10 @@ class PHPIPAM(AbstractIPAM):
                 ipaddress = self.get_next_free_ip(subnet)
                 subnetid = self.find_subnet_id(ipaddress)
                 self.cur.execute("INSERT INTO ipaddresses \
-                                 (subnetId, ip_addr, description, hostname) \
+                                 (subnetId, ip_addr, description, %s) \
                                  VALUES (%d, '%d', '%s', '%s')"
-                                 % (subnetid, ipaddress.ip,
-                                    description, hostname))
+                                 % (self.hostname_db_field, subnetid,
+                                    ipaddress.ip, description, hostname))
                 return ipaddress
         except ValueError as e:
             raise ValueError("Unable to add next IP in %s: %s" % (
@@ -457,7 +470,7 @@ class PHPIPAM(AbstractIPAM):
         return self.get_ip_interface_list_by_desc(description)
 
     def get_ip_interface_list_by_desc(self, description):
-        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.hostname,\
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
                               s.mask,s.description,v.number\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
@@ -466,14 +479,14 @@ class PHPIPAM(AbstractIPAM):
                               s.vlanId = v.vlanId\
                           WHERE ip.description LIKE '%s'\
                               AND ip.state = 1"
-                         % (description))
+                         % (self.hostname_db_field, description))
         iplist = list()
         for row in self.cur:
             item = {}
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item['hostname'] = row[2]
+            item[self.hostname_db_field] = row[2]
             item['subnet_name'] = row[4]
             item['vlan_id'] = row[5]
             iplist.append(item)
@@ -499,21 +512,21 @@ class PHPIPAM(AbstractIPAM):
         return self.get_ip_interface_list_by_subnet_name(subnet_name)
 
     def get_ip_interface_list_by_subnet_name(self, subnet_name):
-        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.hostname,\
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
                               s.mask,s.description\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
                               ip.subnetId = s.id\
                           WHERE s.description LIKE '%s'\
                               AND ip.state = 1"
-                         % (subnet_name))
+                         % (self.hostname_db_field, subnet_name))
         iplist = list()
         for row in self.cur:
             item = {}
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item['hostname'] = row[2]
+            item[self.hostname_db_field] = row[2]
             item['subnet_name'] = row[4]
             iplist.append(item)
         return iplist
@@ -532,17 +545,17 @@ class PHPIPAM(AbstractIPAM):
             return iplist[0]
 
     def get_ip_list_by_desc(self, description):
-        self.cur.execute("SELECT ip_addr,description,hostname \
+        self.cur.execute("SELECT ip_addr,description,%s \
                          FROM ipaddresses \
                          WHERE description LIKE '%s'\
                               AND state = 1"
-                         % (description))
+                         % (self.hostname_db_field, description))
         iplist = list()
         for row in self.cur:
             item = {}
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
-            item['hostname'] = row[2]
+            item[self.hostname_db_field] = row[2]
             iplist.append(item)
         return iplist
 

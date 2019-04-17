@@ -1,6 +1,11 @@
 PRAGMA synchronous = OFF;
 PRAGMA journal_mode = MEMORY;
 BEGIN TRANSACTION;
+CREATE TABLE "settings" (
+  "id" INTEGER PRIMARY KEY,
+  "version" varchar(5) DEFAULT NULL
+);
+INSERT INTO "settings" ("id", "version") VALUES (1, '1.4');
 CREATE TABLE "ipaddresses" (
   "id" INTEGER PRIMARY KEY,
   "subnetId" int(11)  DEFAULT NULL,

@@ -849,3 +849,7 @@ def test_edit_subnet_description(testphpipam):
 
     with pytest.raises(ValueError, match='Unable to get subnet id'):
         testphpipam.edit_subnet_description(ip_network('10.42.0.0/29'), 'err')
+
+
+def test_get_version(testphpipam):
+    assert testphpipam._get_version() == 1.40
