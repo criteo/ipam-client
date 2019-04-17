@@ -120,7 +120,7 @@ class PHPIPAM(AbstractIPAM):
             "for subnet {}".format(subnet)
         )
 
-    def add_ip(self, ipaddress, dnsname, description):
+    def add_ip(self, ipaddress, hostname, description):
         """ Adds an IP address in IPAM. ipaddress must be an
         instance of ip_interface. Returns True """
         with MySQLLock(self):
@@ -133,13 +133,13 @@ class PHPIPAM(AbstractIPAM):
                 raise ValueError("IP address %s already registered"
                                  % (ipaddress.ip))
             self.cur.execute("INSERT INTO ipaddresses \
-                             (subnetId, ip_addr, description, dns_name) \
+                             (subnetId, ip_addr, description, hostname) \
                              VALUES (%d, '%d', '%s', '%s')"
                              % (subnetid, ipaddress.ip,
-                                description, dnsname))
+                                description, hostname))
         return True
 
-    def add_next_ip(self, subnet, dnsname, description):
+    def add_next_ip(self, subnet, hostname, description):
         """ Finds next free ip in subnet, and adds it in IPAM.
         Returns IP address as ip_interface """
         try:
@@ -147,10 +147,10 @@ class PHPIPAM(AbstractIPAM):
                 ipaddress = self.get_next_free_ip(subnet)
                 subnetid = self.find_subnet_id(ipaddress)
                 self.cur.execute("INSERT INTO ipaddresses \
-                                 (subnetId, ip_addr, description, dns_name) \
+                                 (subnetId, ip_addr, description, hostname) \
                                  VALUES (%d, '%d', '%s', '%s')"
                                  % (subnetid, ipaddress.ip,
-                                    description, dnsname))
+                                    description, hostname))
                 return ipaddress
         except ValueError as e:
             raise ValueError("Unable to add next IP in %s: %s" % (
@@ -433,7 +433,7 @@ class PHPIPAM(AbstractIPAM):
         return True
 
     def get_hostname_by_ip(self, ip):
-        self.cur.execute("SELECT dns_name FROM ipaddresses \
+        self.cur.execute("SELECT hostname FROM ipaddresses \
                          WHERE ip_addr='%d'"
                          % ip)
         row = self.cur.fetchone()
@@ -457,7 +457,7 @@ class PHPIPAM(AbstractIPAM):
         return self.get_ip_interface_list_by_desc(description)
 
     def get_ip_interface_list_by_desc(self, description):
-        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.dns_name,\
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.hostname,\
                               s.mask,s.description,v.number\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
@@ -473,7 +473,7 @@ class PHPIPAM(AbstractIPAM):
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item['dnsname'] = row[2]
+            item['hostname'] = row[2]
             item['subnet_name'] = row[4]
             item['vlan_id'] = row[5]
             iplist.append(item)
@@ -499,7 +499,7 @@ class PHPIPAM(AbstractIPAM):
         return self.get_ip_interface_list_by_subnet_name(subnet_name)
 
     def get_ip_interface_list_by_subnet_name(self, subnet_name):
-        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.dns_name,\
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.hostname,\
                               s.mask,s.description\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
@@ -513,7 +513,7 @@ class PHPIPAM(AbstractIPAM):
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item['dnsname'] = row[2]
+            item['hostname'] = row[2]
             item['subnet_name'] = row[4]
             iplist.append(item)
         return iplist
@@ -532,7 +532,7 @@ class PHPIPAM(AbstractIPAM):
             return iplist[0]
 
     def get_ip_list_by_desc(self, description):
-        self.cur.execute("SELECT ip_addr,description,dns_name \
+        self.cur.execute("SELECT ip_addr,description,hostname \
                          FROM ipaddresses \
                          WHERE description LIKE '%s'\
                               AND state = 1"
@@ -542,7 +542,7 @@ class PHPIPAM(AbstractIPAM):
             item = {}
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
-            item['dnsname'] = row[2]
+            item['hostname'] = row[2]
             iplist.append(item)
         return iplist
 

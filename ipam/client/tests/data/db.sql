@@ -6,7 +6,7 @@ CREATE TABLE "ipaddresses" (
   "subnetId" int(11)  DEFAULT NULL,
   "ip_addr" varchar(100) NOT NULL,
   "description" varchar(64) DEFAULT NULL,
-  "dns_name" varchar(64) NOT NULL,
+  "hostname" varchar(64) NOT NULL,
   "mac" varchar(20) DEFAULT NULL,
   "owner" varchar(32) DEFAULT NULL,
   "state" varchar(1) DEFAULT '1',
@@ -88,7 +88,7 @@ INSERT INTO "subnets" VALUES (11,'42540766464452359329374990684406153216','127',
 INSERT INTO "subnets" VALUES (12,'42540766464452359329374990684406153218','127',2,'TEST IPv6 /127 CHILDREN SUBNET #2',0,10,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
 CREATE INDEX "subnets_subnet" ON "subnets" ("subnet");
 CREATE INDEX "sections_id" ON "sections" ("id");
-CREATE INDEX "ipaddresses_dns_name" ON "ipaddresses" ("dns_name");
+CREATE INDEX "ipaddresses_hostname" ON "ipaddresses" ("hostname");
 CREATE INDEX "ipaddresses_ip_addr" ON "ipaddresses" ("ip_addr");
 CREATE INDEX "ipaddresses_description" ON "ipaddresses" ("description");
 CREATE INDEX "ipaddresses_subnetid" ON "ipaddresses" ("subnetId");
