@@ -542,7 +542,7 @@ class PHPIPAM(AbstractIPAM):
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
             item['dnsname'] = row[2]
-            item['state'] = row[3]
+            item['state'] = int(row[3])
             iplist.append(item)
         return iplist
 
