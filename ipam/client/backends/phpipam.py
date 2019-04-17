@@ -532,10 +532,9 @@ class PHPIPAM(AbstractIPAM):
             return iplist[0]
 
     def get_ip_list_by_desc(self, description):
-        self.cur.execute("SELECT ip_addr,description,dns_name \
+        self.cur.execute("SELECT ip_addr,description,dns_name,state \
                          FROM ipaddresses \
-                         WHERE description LIKE '%s'\
-                              AND state = 1"
+                         WHERE description LIKE '%s'"
                          % (description))
         iplist = list()
         for row in self.cur:
@@ -543,6 +542,7 @@ class PHPIPAM(AbstractIPAM):
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
             item['dnsname'] = row[2]
+            item['state'] = row[3]
             iplist.append(item)
         return iplist
 
