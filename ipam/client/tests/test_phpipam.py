@@ -123,8 +123,7 @@ def test_add_next_ip(testphpipam):
         assert ip.network.prefixlen == 28
         testip = testphpipam.get_ip_by_desc(description)
         assert testip['ip'] == ipaddr
-        assert testip['hostname'] == hostname
-        assert testip['dns_name'] == hostname
+        assert testip['dnsname'] == hostname
         assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -145,8 +144,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 30
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     subnet = ip_network('10.4.0.0/31')
@@ -158,8 +156,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 31
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     subnet = ip_network('10.5.0.0/31')
@@ -171,8 +168,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 31
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -188,8 +184,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 20'
@@ -200,8 +195,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 21'
@@ -212,8 +206,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 22'
@@ -224,8 +217,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 23'
@@ -236,8 +228,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 24'
@@ -248,8 +239,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 25'
@@ -260,8 +250,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -277,8 +266,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 127
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 27'
@@ -289,8 +277,7 @@ def test_add_next_ip(testphpipam):
     assert ip.network.prefixlen == 127
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['hostname'] == hostname
-    assert testip['dns_name'] == hostname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -468,8 +455,7 @@ def test_delete_ip(testphpipam):
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
-                       'dns_name': 'test-ip-2',
-                       'hostname': 'test-ip-2'}]
+                       'dnsname': 'test-ip-2'}]
     testphpipam.delete_ip(ip_interface('10.1.0.2/28'))
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == []
@@ -555,12 +541,12 @@ def test_get_ip_by_desc(testphpipam):
     testip = testphpipam.get_ip_by_desc('test ip #2')
     assert testip['ip'] == ip_address('10.1.0.2')
     assert testip['description'] == 'test ip #2'
-    assert testip['hostname'] == 'test-ip-2'
+    assert testip['dnsname'] == 'test-ip-2'
 
     testip = testphpipam.get_ip_by_desc('test ip group 1')
     assert testip['ip'] == ip_address('10.2.0.1')
     assert testip['description'] == 'test ip group 1'
-    assert testip['hostname'] == 'test-ip-8'
+    assert testip['dnsname'] == 'test-ip-8'
 
 
 def test_get_ip_interface_by_desc(testphpipam):
@@ -569,12 +555,12 @@ def test_get_ip_interface_by_desc(testphpipam):
     testip = testphpipam.get_ip_interface_by_desc('test ip #2')
     assert testip['ip'] == ip_interface('10.1.0.2/28')
     assert testip['description'] == 'test ip #2'
-    assert testip['hostname'] == 'test-ip-2'
+    assert testip['dnsname'] == 'test-ip-2'
 
     testip = testphpipam.get_ip_interface_by_desc('test ip group 1')
     assert testip['ip'] == ip_interface('10.2.0.1/29')
     assert testip['description'] == 'test ip group 1'
-    assert testip['hostname'] == 'test-ip-8'
+    assert testip['dnsname'] == 'test-ip-8'
 
     testip = testphpipam.get_ip_interface_by_desc('non-existent ip')
     assert testip is None
@@ -590,18 +576,15 @@ def test_get_ip_list_by_desc(testphpipam):
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
-                       'dns_name': 'test-ip-2',
-                       'hostname': 'test-ip-2'}]
+                       'dnsname': 'test-ip-2'}]
 
     iplist = testphpipam.get_ip_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_address('10.2.0.1'),
                        'description': 'test ip group 1',
-                       'dns_name': 'test-ip-8',
-                       'hostname': 'test-ip-8'},
+                       'dnsname': 'test-ip-8'},
                       {'ip': ip_address('10.2.0.2'),
                        'description': 'test ip group 1',
-                       'dns_name': 'test-ip-9',
-                       'hostname': 'test-ip-9'}]
+                       'dnsname': 'test-ip-9'}]
 
 
 def test_get_ip_interface_list_by_desc(testphpipam):
@@ -610,23 +593,20 @@ def test_get_ip_interface_list_by_desc(testphpipam):
     iplist = testphpipam.get_ip_interface_list_by_desc('test ip #2')
     assert iplist == [{'ip': ip_interface('10.1.0.2/28'),
                        'description': 'test ip #2',
-                       'dns_name': 'test-ip-2',
-                       'hostname': 'test-ip-2',
+                       'dnsname': 'test-ip-2',
                        'subnet_name': 'TEST /28 SUBNET',
                        'vlan_id': 42
                        }]
     iplist = testphpipam.get_ip_interface_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_interface('10.2.0.1/29'),
                        'description': 'test ip group 1',
-                       'dns_name': 'test-ip-8',
-                       'hostname': 'test-ip-8',
+                       'dnsname': 'test-ip-8',
                        'subnet_name': 'TEST FULL /29 SUBNET',
                        'vlan_id': None
                        },
                       {'ip': ip_interface('10.2.0.2/29'),
                        'description': 'test ip group 1',
-                       'dns_name': 'test-ip-9',
-                       'hostname': 'test-ip-9',
+                       'dnsname': 'test-ip-9',
                        'subnet_name': 'TEST FULL /29 SUBNET',
                        'vlan_id': None}
                       ]
@@ -639,8 +619,7 @@ def test_get_ipnetwork_list_by_desc(testphpipam):
 def test_get_ip_interface_by_subnet_name(testphpipam):
     ip = testphpipam.get_ip_interface_by_subnet_name('TEST%')
     assert ip == {'description': u'test ip #1',
-                  'dns_name': u'test-ip-1',
-                  'hostname': u'test-ip-1',
+                  'dnsname': u'test-ip-1',
                   'ip': ip_interface('10.1.0.1/28'),
                   'subnet_name': u'TEST /28 SUBNET'}
     ip = testphpipam.get_ip_interface_by_subnet_name('non-existent ip')
@@ -655,73 +634,59 @@ def test_get_ipnetwork_by_subnet_name(testphpipam):
 def test_get_ip_interface_list_by_subnet_name(testphpipam):
     iplist = testphpipam.get_ip_interface_list_by_subnet_name('TEST%')
     assert iplist == [{'description': u'test ip #1',
-                       'dns_name': u'test-ip-1',
-                       'hostname': u'test-ip-1',
+                       'dnsname': u'test-ip-1',
                        'ip': ip_interface('10.1.0.1/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #2',
-                       'dns_name': u'test-ip-2',
-                       'hostname': u'test-ip-2',
+                       'dnsname': u'test-ip-2',
                        'ip': ip_interface('10.1.0.2/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #3',
-                       'dns_name': u'test-ip-3',
-                       'hostname': u'test-ip-3',
+                       'dnsname': u'test-ip-3',
                        'ip': ip_interface('10.1.0.3/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #4',
-                       'dns_name': u'test-ip-4',
-                       'hostname': u'test-ip-4',
+                       'dnsname': u'test-ip-4',
                        'ip': ip_interface('10.1.0.7/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #5',
-                       'dns_name': u'test-ip-5',
-                       'hostname': u'test-ip-5',
+                       'dnsname': u'test-ip-5',
                        'ip': ip_interface('10.1.0.8/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #6',
-                       'dns_name': u'test-ip-6',
-                       'hostname': u'test-ip-6',
+                       'dnsname': u'test-ip-6',
                        'ip': ip_interface('10.1.0.9/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #7',
-                       'dns_name': u'test-ip-7',
-                       'hostname': u'test-ip-7',
+                       'dnsname': u'test-ip-7',
                        'ip': ip_interface('10.1.0.10/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip group 1',
-                       'dns_name': u'test-ip-8',
-                       'hostname': u'test-ip-8',
+                       'dnsname': u'test-ip-8',
                        'ip': ip_interface('10.2.0.1/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip group 1',
-                       'dns_name': u'test-ip-9',
-                       'hostname': u'test-ip-9',
+                       'dnsname': u'test-ip-9',
                        'ip': ip_interface('10.2.0.2/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #10',
-                       'dns_name': u'test-ip-10',
-                       'hostname': u'test-ip-10',
+                       'dnsname': u'test-ip-10',
                        'ip': ip_interface('10.2.0.3/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #11',
-                       'dns_name': u'test-ip-11',
-                       'hostname': u'test-ip-11',
+                       'dnsname': u'test-ip-11',
                        'ip': ip_interface('10.2.0.4/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #12',
-                       'dns_name': u'test-ip-12',
-                       'hostname': u'test-ip-12',
+                       'dnsname': u'test-ip-12',
                        'ip': ip_interface('10.2.0.5/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #13',
-                       'dns_name': u'test-ip-13',
-                       'hostname': u'test-ip-13',
+                       'dnsname': u'test-ip-13',
                        'ip': ip_interface('10.2.0.6/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #15',
-                       'dns_name': u'test-ip-15',
-                       'hostname': u'test-ip-15',
+                       'dnsname': u'test-ip-15',
                        'ip': ip_interface('10.5.0.0/31'),
                        'subnet_name': u'TEST /31 SUBNET GROUP'},
                       ]
@@ -730,73 +695,59 @@ def test_get_ip_interface_list_by_subnet_name(testphpipam):
 def test_get_ipnetwork_list_by_subnet_name(testphpipam):
     iplist = testphpipam.get_ipnetwork_list_by_subnet_name('TEST%')
     assert iplist == [{'description': u'test ip #1',
-                       'dns_name': u'test-ip-1',
-                       'hostname': u'test-ip-1',
+                       'dnsname': u'test-ip-1',
                        'ip': ip_interface('10.1.0.1/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #2',
-                       'dns_name': u'test-ip-2',
-                       'hostname': u'test-ip-2',
+                       'dnsname': u'test-ip-2',
                        'ip': ip_interface('10.1.0.2/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #3',
-                       'dns_name': u'test-ip-3',
-                       'hostname': u'test-ip-3',
+                       'dnsname': u'test-ip-3',
                        'ip': ip_interface('10.1.0.3/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #4',
-                       'dns_name': u'test-ip-4',
-                       'hostname': u'test-ip-4',
+                       'dnsname': u'test-ip-4',
                        'ip': ip_interface('10.1.0.7/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #5',
-                       'dns_name': u'test-ip-5',
-                       'hostname': u'test-ip-5',
+                       'dnsname': u'test-ip-5',
                        'ip': ip_interface('10.1.0.8/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #6',
-                       'dns_name': u'test-ip-6',
-                       'hostname': u'test-ip-6',
+                       'dnsname': u'test-ip-6',
                        'ip': ip_interface('10.1.0.9/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip #7',
-                       'dns_name': u'test-ip-7',
-                       'hostname': u'test-ip-7',
+                       'dnsname': u'test-ip-7',
                        'ip': ip_interface('10.1.0.10/28'),
                        'subnet_name': u'TEST /28 SUBNET'},
                       {'description': u'test ip group 1',
-                       'dns_name': u'test-ip-8',
-                       'hostname': u'test-ip-8',
+                       'dnsname': u'test-ip-8',
                        'ip': ip_interface('10.2.0.1/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip group 1',
-                       'dns_name': u'test-ip-9',
-                       'hostname': u'test-ip-9',
+                       'dnsname': u'test-ip-9',
                        'ip': ip_interface('10.2.0.2/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #10',
-                       'dns_name': u'test-ip-10',
-                       'hostname': u'test-ip-10',
+                       'dnsname': u'test-ip-10',
                        'ip': ip_interface('10.2.0.3/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #11',
-                       'dns_name': u'test-ip-11',
-                       'hostname': u'test-ip-11',
+                       'dnsname': u'test-ip-11',
                        'ip': ip_interface('10.2.0.4/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #12',
-                       'dns_name': u'test-ip-12',
-                       'hostname': u'test-ip-12',
+                       'dnsname': u'test-ip-12',
                        'ip': ip_interface('10.2.0.5/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #13',
-                       'dns_name': u'test-ip-13',
-                       'hostname': u'test-ip-13',
+                       'dnsname': u'test-ip-13',
                        'ip': ip_interface('10.2.0.6/29'),
                        'subnet_name': u'TEST FULL /29 SUBNET'},
                       {'description': u'test ip #15',
-                       'dns_name': u'test-ip-15',
-                       'hostname': u'test-ip-15',
+                       'dnsname': u'test-ip-15',
                        'ip': ip_interface('10.5.0.0/31'),
                        'subnet_name': u'TEST /31 SUBNET GROUP'},
                       ]
