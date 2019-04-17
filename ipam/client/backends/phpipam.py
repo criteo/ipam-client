@@ -486,7 +486,8 @@ class PHPIPAM(AbstractIPAM):
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item[self.hostname_db_field] = row[2]
+            item['hostname'] = row[2]
+            item['dns_name'] = row[2]
             item['subnet_name'] = row[4]
             item['vlan_id'] = row[5]
             iplist.append(item)
@@ -526,7 +527,8 @@ class PHPIPAM(AbstractIPAM):
             net_ip_address = ip_address(int(row[0]))
             item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
             item['description'] = row[1]
-            item[self.hostname_db_field] = row[2]
+            item['hostname'] = row[2]
+            item['dns_name'] = row[2]
             item['subnet_name'] = row[4]
             iplist.append(item)
         return iplist
@@ -555,7 +557,8 @@ class PHPIPAM(AbstractIPAM):
             item = {}
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
-            item[self.hostname_db_field] = row[2]
+            item['dns_name'] = row[2]
+            item['hostname'] = row[2]
             iplist.append(item)
         return iplist
 
