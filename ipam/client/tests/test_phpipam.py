@@ -8,18 +8,49 @@ from ipam.client.backends.phpipam import PHPIPAM
 from ipaddress import ip_address, ip_interface, ip_network
 
 
-@pytest.fixture
+@pytest.fixture(params=('recent-version', 'old-version'))
 def testdb(request):
     """Test SQLite instance."""
-    _dbfile = tempfile.NamedTemporaryFile(prefix='test-phpipam',
-                                          suffix='.db', delete=False)
+    _dbfile = tempfile.NamedTemporaryFile(
+        prefix='test-phpipam-{}'.format(request.param),
+        suffix='.db', delete=False
+    )
     _dbfilename = _dbfile.name
     _dbfile.close()
 
     conn = sqlite3.connect(_dbfilename)
     cur = conn.cursor()
 
-    f = open(os.path.dirname(os.path.realpath(__file__)) + '/data/db.sql')
+    f = open(os.path.dirname(os.path.realpath(__file__)) +
+             '/data/db-{}.sql'.format(request.param))
+    sql = f.read()
+    cur.executescript(sql)
+
+    conn.commit()
+    conn.close()
+
+    def testdbteardown():
+        os.unlink(_dbfilename)
+
+    request.addfinalizer(testdbteardown)
+    return _dbfilename
+
+
+@pytest.fixture
+def testdb_no_settings(request):
+    """Test SQLite instance."""
+    _dbfile = tempfile.NamedTemporaryFile(
+        prefix='test-phpipam',
+        suffix='.db', delete=False
+    )
+    _dbfilename = _dbfile.name
+    _dbfile.close()
+
+    conn = sqlite3.connect(_dbfilename)
+    cur = conn.cursor()
+
+    f = open(os.path.dirname(os.path.realpath(__file__)) +
+             '/data/db-no-settings.sql')
     sql = f.read()
     cur.executescript(sql)
 
@@ -52,6 +83,12 @@ def test_db_fail():
     params['dbtype'] = 'test'
     with pytest.raises(ValueError):
         PHPIPAM(params)
+
+
+def test_settings_fail(testdb_no_settings):
+    with pytest.raises(ValueError, match='Could not retrieve version from DB'):
+        PHPIPAM({'section_name': 'Production', 'dbtype':
+                'sqlite', 'database_uri': testdb_no_settings})
 
 
 def test_subnet_options(testdb, testphpipam):
@@ -857,5 +894,5 @@ def test_edit_subnet_description(testphpipam):
         testphpipam.edit_subnet_description(ip_network('10.42.0.0/29'), 'err')
 
 
-def test_get_version(testphpipam):
-    assert testphpipam._get_version() == 1.40
+def test_get_version(request, testphpipam):
+    assert isinstance(testphpipam._get_version(), float)
