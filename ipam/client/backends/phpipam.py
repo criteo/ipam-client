@@ -446,9 +446,9 @@ class PHPIPAM(AbstractIPAM):
         return True
 
     def get_hostname_by_ip(self, ip):
-        self.cur.execute("SELECT hostname FROM ipaddresses \
+        self.cur.execute("SELECT %s FROM ipaddresses \
                          WHERE ip_addr='%d'"
-                         % ip)
+                         % (self.hostname_db_field, ip))
         row = self.cur.fetchone()
         if row is not None:
             return row[0]
