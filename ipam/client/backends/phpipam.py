@@ -82,7 +82,7 @@ class PHPIPAM(AbstractIPAM):
 
         if self._get_version() < 1.32:
             # Older PHPIPAM version use `dns_name` field instead of `hostname`
-            self.hostname_db_field = 'dnsname'
+            self.hostname_db_field = 'dns_name'
 
     def set_section_id(self, section_id):
         self.section_id = section_id
