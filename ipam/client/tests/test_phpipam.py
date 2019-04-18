@@ -8,11 +8,9 @@ from ipam.client.backends.phpipam import PHPIPAM
 from ipaddress import ip_address, ip_interface, ip_network
 
 
-@pytest.fixture(params=('recent-version', 'old-version'))
-def testdb(request):
-    """Test SQLite instance."""
+def create_db(db_file_name):
     _dbfile = tempfile.NamedTemporaryFile(
-        prefix='test-phpipam-{}'.format(request.param),
+        prefix='test-phpipam-{}'.format(db_file_name),
         suffix='.db', delete=False
     )
     _dbfilename = _dbfile.name
@@ -22,46 +20,38 @@ def testdb(request):
     cur = conn.cursor()
 
     f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '/data/db-{}.sql'.format(request.param))
+             '/data/db-{}.sql'.format(db_file_name))
     sql = f.read()
     cur.executescript(sql)
 
     conn.commit()
     conn.close()
 
+    return _dbfilename
+
+
+@pytest.fixture(params=('recent-version', 'old-version'))
+def testdb(request):
+    """Test SQLite instance."""
+    db_file = create_db(request.param)
+
     def testdbteardown():
-        os.unlink(_dbfilename)
+        os.unlink(db_file)
 
     request.addfinalizer(testdbteardown)
-    return _dbfilename
+    return db_file
 
 
 @pytest.fixture
 def testdb_no_settings(request):
     """Test SQLite instance."""
-    _dbfile = tempfile.NamedTemporaryFile(
-        prefix='test-phpipam',
-        suffix='.db', delete=False
-    )
-    _dbfilename = _dbfile.name
-    _dbfile.close()
-
-    conn = sqlite3.connect(_dbfilename)
-    cur = conn.cursor()
-
-    f = open(os.path.dirname(os.path.realpath(__file__)) +
-             '/data/db-no-settings.sql')
-    sql = f.read()
-    cur.executescript(sql)
-
-    conn.commit()
-    conn.close()
+    db_file = create_db('no-settings')
 
     def testdbteardown():
-        os.unlink(_dbfilename)
+        os.unlink(db_file)
 
     request.addfinalizer(testdbteardown)
-    return _dbfilename
+    return db_file
 
 
 @pytest.fixture
