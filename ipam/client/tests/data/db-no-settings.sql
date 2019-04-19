@@ -1,6 +1,10 @@
 PRAGMA synchronous = OFF;
 PRAGMA journal_mode = MEMORY;
 BEGIN TRANSACTION;
+CREATE TABLE "settings" (
+  "id" INTEGER PRIMARY KEY,
+  "version" varchar(5) DEFAULT NULL
+);
 CREATE TABLE "ipaddresses" (
   "id" INTEGER PRIMARY KEY,
   "subnetId" int(11)  DEFAULT NULL,
@@ -24,14 +28,6 @@ INSERT INTO "ipaddresses" VALUES (4,1,'167837703','test ip #4','test-ip-4','',''
 INSERT INTO "ipaddresses" VALUES (5,1,'167837704','test ip #5','test-ip-5','','','1',0,'','','NULL','0','NULL');
 INSERT INTO "ipaddresses" VALUES (6,1,'167837705','test ip #6','test-ip-6','','','1',0,'','','NULL','0','NULL');
 INSERT INTO "ipaddresses" VALUES (7,1,'167837706','test ip #7','test-ip-7','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (8,2,'167903233','test ip group 1','test-ip-8','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (9,2,'167903234','test ip group 1','test-ip-9','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (10,2,'167903235','test ip #10','test-ip-10','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (11,2,'167903236','test ip #11','test-ip-11','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (12,2,'167903237','test ip #12','test-ip-12','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (13,2,'167903238','test ip #13','test-ip-13','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (14,3,'167968770','test ip #14','test-ip-14','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (15,5,'168099840','test ip #15','test-ip-15','','','1',0,'','','NULL','0','NULL');
 CREATE TABLE "sections" (
   "id" int(11) NOT NULL ,
   "name" varchar(128) NOT NULL DEFAULT '',
@@ -47,9 +43,6 @@ CREATE TABLE "sections" (
   PRIMARY KEY ("name")
 );
 INSERT INTO "sections" VALUES (2,'Production','Section for Production Network',0,'{"2":"2","3":"1"}','1',NULL,NULL,NULL,0,0);
-INSERT INTO "sections" VALUES (4,'Management','Section for Management Network',0,'{"2":"2","3":"1"}','1',NULL,NULL,NULL,0,0);
-INSERT INTO "sections" VALUES (5,'Third Party','Third Party owned Networks',0,'{"2":"2","3":"1"}','1',NULL,NULL,NULL,0,0);
-INSERT INTO "sections" VALUES (6,'IT','Section for Office network',0,'{"3":"1","2":"2"}','1',NULL,NULL,NULL,0,0);
 CREATE TABLE "vlans" (
   "vlanId" INTEGER PRIMARY_KEY,
   "name" varchar(255) NOT NULL,
@@ -75,17 +68,6 @@ CREATE TABLE "subnets" (
   "editDate" timestamp DEFAULT NULL
 );
 INSERT INTO "subnets" VALUES (1,'167837696','28',2,'TEST /28 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (2,'167903232','29',2,'TEST FULL /29 SUBNET',0,0,1,0,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (3,'167968768','30',2,'TST /30 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (4,'168034304','31',2,'TEST /31 SUBNET GROUP',0,0,1,0,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (5,'168099840','31',2,'TEST /31 SUBNET GROUP',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (6,'42540488161975842760550356425300246592','125',2,'TEST IPv6 /125 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (7,'42540488161975842760550356425300246608','127',2,'TEST IPv6 /127 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (8,'168427520','24',2,'TEST IPv4 /24 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (9,'42540766411362381960998550477184434176','48',2,'TEST IPv6 /48 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (10,'42540766464452359329374990684406153216','64',2,'TEST IPv6 /64 SUBNET',0,0,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (11,'42540766464452359329374990684406153216','127',2,'TEST IPv6 /127 CHILDREN SUBNET',0,10,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
-INSERT INTO "subnets" VALUES (12,'42540766464452359329374990684406153218','127',2,'TEST IPv6 /127 CHILDREN SUBNET #2',0,10,1,10,0,'{"2":"1","3":"1"}',0,0,NULL);
 CREATE INDEX "subnets_subnet" ON "subnets" ("subnet");
 CREATE INDEX "sections_id" ON "sections" ("id");
 CREATE INDEX "ipaddresses_dns_name" ON "ipaddresses" ("dns_name");

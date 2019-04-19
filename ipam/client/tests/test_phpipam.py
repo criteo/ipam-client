@@ -8,29 +8,50 @@ from ipam.client.backends.phpipam import PHPIPAM
 from ipaddress import ip_address, ip_interface, ip_network
 
 
-@pytest.fixture
-def testdb(request):
-    """Test SQLite instance."""
-    _dbfile = tempfile.NamedTemporaryFile(prefix='test-phpipam',
-                                          suffix='.db', delete=False)
+def create_db(db_file_name):
+    _dbfile = tempfile.NamedTemporaryFile(
+        prefix='test-phpipam-{}'.format(db_file_name),
+        suffix='.db', delete=False
+    )
     _dbfilename = _dbfile.name
     _dbfile.close()
 
     conn = sqlite3.connect(_dbfilename)
     cur = conn.cursor()
 
-    f = open(os.path.dirname(os.path.realpath(__file__)) + '/data/db.sql')
+    f = open(os.path.dirname(os.path.realpath(__file__)) +
+             '/data/db-{}.sql'.format(db_file_name))
     sql = f.read()
     cur.executescript(sql)
 
     conn.commit()
     conn.close()
 
+    return _dbfilename
+
+
+@pytest.fixture(params=('recent-version', 'old-version'))
+def testdb(request):
+    """Test SQLite instance."""
+    db_file = create_db(request.param)
+
     def testdbteardown():
-        os.unlink(_dbfilename)
+        os.unlink(db_file)
 
     request.addfinalizer(testdbteardown)
-    return _dbfilename
+    return db_file
+
+
+@pytest.fixture
+def testdb_no_settings(request):
+    """Test SQLite instance."""
+    db_file = create_db('no-settings')
+
+    def testdbteardown():
+        os.unlink(db_file)
+
+    request.addfinalizer(testdbteardown)
+    return db_file
 
 
 @pytest.fixture
@@ -52,6 +73,12 @@ def test_db_fail():
     params['dbtype'] = 'test'
     with pytest.raises(ValueError):
         PHPIPAM(params)
+
+
+def test_settings_fail(testdb_no_settings):
+    with pytest.raises(ValueError, match='Could not retrieve version from DB'):
+        PHPIPAM({'section_name': 'Production', 'dbtype':
+                'sqlite', 'database_uri': testdb_no_settings})
 
 
 def test_subnet_options(testdb, testphpipam):
@@ -102,8 +129,8 @@ def test_add_ip(testphpipam):
 
     ip = ip_interface('10.1.0.4/28')
     description = 'add_ip generated ip 1'
-    dnsname = 'add_ip generated-ip-1'
-    assert testphpipam.add_ip(ip, dnsname, description) is True
+    hostname = 'add_ip generated-ip-1'
+    assert testphpipam.add_ip(ip, hostname, description) is True
 
     ip = ip_interface('10.42.0.1/28')
     with pytest.raises(ValueError) as excinfo:
@@ -115,15 +142,15 @@ def test_add_next_ip(testphpipam):
     subnet = ip_network('10.1.0.0/28')
     for i in list(range(4, 7)) + list(range(11, 15)):
         description = 'add_next_ip generated ip %d' % i
-        dnsname = 'add_next_ip generated-ip-%d' % i
+        hostname = 'add_next_ip generated-ip-%d' % i
         ipaddr = ip_address('10.1.0.%d' % i)
 
-        ip = testphpipam.add_next_ip(subnet, dnsname, description)
+        ip = testphpipam.add_next_ip(subnet, hostname, description)
         assert ip.ip == ipaddr
         assert ip.network.prefixlen == 28
         testip = testphpipam.get_ip_by_desc(description)
         assert testip['ip'] == ipaddr
-        assert testip['dnsname'] == dnsname
+        assert testip['dnsname'] == hostname
         assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -137,38 +164,38 @@ def test_add_next_ip(testphpipam):
 
     subnet = ip_network('10.3.0.0/30')
     description = 'add_next_ip generated ip 16'
-    dnsname = 'add_next_ip generated-ip-16'
+    hostname = 'add_next_ip generated-ip-16'
     ipaddr = ip_address('10.3.0.1')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 30
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     subnet = ip_network('10.4.0.0/31')
     description = 'add_next_ip generated ip 17'
-    dnsname = 'add_next_ip generated-ip-17'
+    hostname = 'add_next_ip generated-ip-17'
     ipaddr = ip_address('10.4.0.0')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 31
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     subnet = ip_network('10.5.0.0/31')
     description = 'add_next_ip generated ip 18'
-    dnsname = 'add_next_ip generated-ip-18'
+    hostname = 'add_next_ip generated-ip-18'
     ipaddr = ip_address('10.5.0.1')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 31
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -177,80 +204,80 @@ def test_add_next_ip(testphpipam):
 
     subnet = ip_network('2001::40/125')
     description = 'add_next_ip generated ip 19'
-    dnsname = 'add_next_ip generated-ip-19'
+    hostname = 'add_next_ip generated-ip-19'
     ipaddr = ip_address('2001::41')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 20'
-    dnsname = 'add_next_ip generated-ip-20'
+    hostname = 'add_next_ip generated-ip-20'
     ipaddr = ip_address('2001::42')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 21'
-    dnsname = 'add_next_ip generated-ip-21'
+    hostname = 'add_next_ip generated-ip-21'
     ipaddr = ip_address('2001::43')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 22'
-    dnsname = 'add_next_ip generated-ip-22'
+    hostname = 'add_next_ip generated-ip-22'
     ipaddr = ip_address('2001::44')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 23'
-    dnsname = 'add_next_ip generated-ip-21'
+    hostname = 'add_next_ip generated-ip-21'
     ipaddr = ip_address('2001::45')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 24'
-    dnsname = 'add_next_ip generated-ip-22'
+    hostname = 'add_next_ip generated-ip-22'
     ipaddr = ip_address('2001::46')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 25'
-    dnsname = 'add_next_ip generated-ip-22'
+    hostname = 'add_next_ip generated-ip-22'
     ipaddr = ip_address('2001::47')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 125
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -259,25 +286,25 @@ def test_add_next_ip(testphpipam):
 
     subnet = ip_network('2001::50/127')
     description = 'add_next_ip generated ip 26'
-    dnsname = 'add_next_ip generated-ip-23'
+    hostname = 'add_next_ip generated-ip-23'
     ipaddr = ip_address('2001::50')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 127
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     description = 'add_next_ip generated ip 27'
-    dnsname = 'add_next_ip generated-ip-24'
+    hostname = 'add_next_ip generated-ip-24'
     ipaddr = ip_address('2001::51')
-    ip = testphpipam.add_next_ip(subnet, dnsname, description)
+    ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 127
     testip = testphpipam.get_ip_by_desc(description)
     assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == dnsname
+    assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
@@ -855,3 +882,7 @@ def test_edit_subnet_description(testphpipam):
 
     with pytest.raises(ValueError, match='Unable to get subnet id'):
         testphpipam.edit_subnet_description(ip_network('10.42.0.0/29'), 'err')
+
+
+def test_get_version(testphpipam):
+    assert isinstance(testphpipam._get_version(), float)
