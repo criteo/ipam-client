@@ -884,5 +884,5 @@ def test_edit_subnet_description(testphpipam):
         testphpipam.edit_subnet_description(ip_network('10.42.0.0/29'), 'err')
 
 
-def test_get_version(request, testphpipam):
+def test_get_version(testphpipam):
     assert isinstance(testphpipam._get_version(), float)
