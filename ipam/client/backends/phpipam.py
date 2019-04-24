@@ -43,6 +43,8 @@ class MySQLLock(object):
                 self.ipam.db.commit()
             self.ipam.cur.execute('SELECT RELEASE_LOCK("{}")'.format(
                 LOCK_NAME))
+            # empty cursor to avoid "unread results" error
+            self.ipam.cur.fetchall()
             self.ipam.db.autocommit = True
 
 
