@@ -99,12 +99,11 @@ class PHPIPAM(AbstractIPAM):
         self.set_section_id(row[0])
 
     def _get_version(self):
-        with MySQLLock(self):
-            self.cur.execute('SELECT version FROM settings')
-            row = self.cur.fetchone()
-            if row is None:
-                raise ValueError('Could not retrieve version from DB')
-            return float(row[0])
+        self.cur.execute('SELECT version FROM settings LIMIT 1')
+        row = self.cur.fetchone()
+        if row is None:
+            raise ValueError('Could not retrieve version from DB')
+        return float(row[0])
 
     def get_section_id(self):
         return self.section_id
