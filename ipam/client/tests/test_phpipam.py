@@ -832,6 +832,19 @@ def test_get_subnet_list_by_desc(testphpipam):
                            'vlan_id': 10}]
 
 
+def test_get_subnet_with_ips(testphpipam):
+    subnetlist = testphpipam.get_subnet_with_ips(ip_network('10.3.0.0/30'))
+    assert subnetlist == {'subnet': ip_network('10.3.0.0/30'),
+                          'description': 'TST /30 SUBNET', 'vlan_id': 10,
+                          'ips': [{'ip': ip_address('10.3.0.2'),
+                                   'state': '1',
+                                   'dnsname': 'test-ip-14',
+                                   'description': 'test ip #14'}]}
+
+    with pytest.raises(ValueError, match='Unable to get subnet id'):
+        testphpipam.get_subnet_with_ips(ip_network('1.2.3.0/24'))
+
+
 def test_get_num_ips_by_desc(testphpipam):
     assert testphpipam.get_num_ips_by_desc('unknown ip') == 0
     assert testphpipam.get_num_ips_by_desc('test ip #2') == 1

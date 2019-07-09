@@ -493,6 +493,33 @@ class PHPIPAM(AbstractIPAM):
             iplist.append(item)
         return iplist
 
+    def get_subnet_with_ips(self, subnet):
+        """"
+        Returns a subnet with all its allocated ip addresses
+        """
+
+        subnetid = self.find_subnet_id(subnet)
+
+        ipam_subnet = self.get_subnet_by_id(subnetid)
+
+        self.cur.execute('SELECT ip_addr,description,{},state '
+                         'FROM ipaddresses '
+                         'WHERE subnetId = {}'
+                         ''.format(self.hostname_db_field, subnetid))
+
+        iplist = list()
+        for row in self.cur:
+            item = {}
+            item['ip'] = ip_address(int(row[0]))
+            item['description'] = row[1]
+            item['dnsname'] = row[2]
+            item['state'] = row[3]
+            iplist.append(item)
+
+        ipam_subnet['ips'] = iplist
+
+        return ipam_subnet
+
     def get_ipnetwork_by_desc(self, description):
         """
         Wrapper for backward compatibility
