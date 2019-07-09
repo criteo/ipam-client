@@ -43,8 +43,6 @@ class MySQLLock(object):
                 self.ipam.db.commit()
             self.ipam.cur.execute('SELECT RELEASE_LOCK("{}")'.format(
                 LOCK_NAME))
-            # empty cursor to avoid "unread results" error
-            self.ipam.cur.fetchall()
             self.ipam.db.autocommit = True
 
 
@@ -68,6 +66,7 @@ class PHPIPAM(AbstractIPAM):
         self.dbtype = dbtype
         if dbtype == 'sqlite':
             self.db = sqlite3.connect(params['database_uri'])
+            self.cur = self.db.cursor()
         elif dbtype == 'mysql':
             self.db = mysql.connector.connect(
                 host=params['database_host'],
@@ -77,9 +76,9 @@ class PHPIPAM(AbstractIPAM):
             )
             # Enable autocommit for reads to prevent entering transaction
             self.db.autocommit = True
+            self.cur = self.db.cursor(buffered=True)
         else:
             raise ValueError('Unsupported database driver')
-        self.cur = self.db.cursor()
         self.set_section_id_by_name(section_name)
 
         if self._get_version() < 1.32:
