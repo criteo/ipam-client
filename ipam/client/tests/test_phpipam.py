@@ -549,6 +549,7 @@ def test_get_subnet_by_id(testphpipam):
     testsubnet = testphpipam.get_subnet_by_id(3)
     assert testsubnet['subnet'] == ip_network('10.3.0.0/30')
     assert testsubnet['description'] == 'TST /30 SUBNET'
+    assert testsubnet['vlan_id'] == 10
 
 
 def test_get_allocated_ips_by_subnet_id(testphpipam):
@@ -809,21 +810,26 @@ def test_get_children_subnet_list(testphpipam):
     parent_subnet6 = ip_network('2001:db8:abcd::/64')
     subnetlist = testphpipam.get_children_subnet_list(parent_subnet6)
     assert subnetlist == [{'subnet': ip_network('2001:db8:abcd::/127'),
-                           'description': 'TEST IPv6 /127 CHILDREN SUBNET'},
+                           'description': 'TEST IPv6 /127 CHILDREN SUBNET',
+                           'vlan_id': 10},
                           {'subnet': ip_network('2001:db8:abcd::2/127'),
-                           'description': 'TEST IPv6 /127 CHILDREN SUBNET #2'}]
+                           'description': 'TEST IPv6 /127 CHILDREN SUBNET #2',
+                           'vlan_id': 10}]
 
 
 def test_get_subnet_list_by_desc(testphpipam):
     assert testphpipam.get_subnet_list_by_desc('unknown subnet') == []
     subnetlist = testphpipam.get_subnet_list_by_desc('TEST /28 SUBNET')
     assert subnetlist == [{'subnet': ip_network('10.1.0.0/28'),
-                           'description': 'TEST /28 SUBNET'}]
+                           'description': 'TEST /28 SUBNET',
+                           'vlan_id': 10}]
     subnetlist = testphpipam.get_subnet_list_by_desc('TEST /31 SUBNET GROUP')
     assert subnetlist == [{'subnet': ip_network('10.4.0.0/31'),
-                           'description': 'TEST /31 SUBNET GROUP'},
+                           'description': 'TEST /31 SUBNET GROUP',
+                           'vlan_id': 0},
                           {'subnet': ip_network('10.5.0.0/31'),
-                           'description': 'TEST /31 SUBNET GROUP'}]
+                           'description': 'TEST /31 SUBNET GROUP',
+                           'vlan_id': 10}]
 
 
 def test_get_num_ips_by_desc(testphpipam):

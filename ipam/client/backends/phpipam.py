@@ -570,7 +570,7 @@ class PHPIPAM(AbstractIPAM):
     def get_children_subnet_list(self, parent_subnet):
         netlist = list()
         parent_subnet_id = self.find_subnet_id(parent_subnet)
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE masterSubnetId = '%i'"
                          % parent_subnet_id)
         for row in self.cur:
@@ -578,11 +578,12 @@ class PHPIPAM(AbstractIPAM):
             subnet = str(ip_address(int(row[0])))
             item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             netlist.append(item)
         return netlist
 
     def get_subnet_list_by_desc(self, description):
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE description LIKE '%s'"
                          % description)
         netlist = list()
@@ -591,6 +592,7 @@ class PHPIPAM(AbstractIPAM):
             subnet = str(ip_address(int(row[0])))
             item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             netlist.append(item)
         return netlist
 
@@ -602,7 +604,7 @@ class PHPIPAM(AbstractIPAM):
             return subnetlist[0]
 
     def get_subnet_by_id(self, subnetid):
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE id=%d"
                          % subnetid)
         row = self.cur.fetchone()
@@ -611,6 +613,7 @@ class PHPIPAM(AbstractIPAM):
             subnet = str(ip_address(int(row[0])))
             item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             return item
         return None
 
