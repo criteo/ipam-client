@@ -43,8 +43,6 @@ class MySQLLock(object):
                 self.ipam.db.commit()
             self.ipam.cur.execute('SELECT RELEASE_LOCK("{}")'.format(
                 LOCK_NAME))
-            # empty cursor to avoid "unread results" error
-            self.ipam.cur.fetchall()
             self.ipam.db.autocommit = True
 
 
@@ -68,6 +66,7 @@ class PHPIPAM(AbstractIPAM):
         self.dbtype = dbtype
         if dbtype == 'sqlite':
             self.db = sqlite3.connect(params['database_uri'])
+            self.cur = self.db.cursor()
         elif dbtype == 'mysql':
             self.db = mysql.connector.connect(
                 host=params['database_host'],
@@ -77,9 +76,9 @@ class PHPIPAM(AbstractIPAM):
             )
             # Enable autocommit for reads to prevent entering transaction
             self.db.autocommit = True
+            self.cur = self.db.cursor(buffered=True)
         else:
             raise ValueError('Unsupported database driver')
-        self.cur = self.db.cursor()
         self.set_section_id_by_name(section_name)
 
         if self._get_version() < 1.32:
@@ -493,6 +492,33 @@ class PHPIPAM(AbstractIPAM):
             iplist.append(item)
         return iplist
 
+    def get_subnet_with_ips(self, subnet):
+        """"
+        Returns a subnet with all its allocated ip addresses
+        """
+
+        subnetid = self.find_subnet_id(subnet)
+
+        ipam_subnet = self.get_subnet_by_id(subnetid)
+
+        self.cur.execute('SELECT ip_addr,description,{},state '
+                         'FROM ipaddresses '
+                         'WHERE subnetId = {}'
+                         ''.format(self.hostname_db_field, subnetid))
+
+        iplist = list()
+        for row in self.cur:
+            item = {}
+            item['ip'] = ip_address(int(row[0]))
+            item['description'] = row[1]
+            item['dnsname'] = row[2]
+            item['state'] = row[3]
+            iplist.append(item)
+
+        ipam_subnet['ips'] = iplist
+
+        return ipam_subnet
+
     def get_ipnetwork_by_desc(self, description):
         """
         Wrapper for backward compatibility
@@ -570,7 +596,7 @@ class PHPIPAM(AbstractIPAM):
     def get_children_subnet_list(self, parent_subnet):
         netlist = list()
         parent_subnet_id = self.find_subnet_id(parent_subnet)
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE masterSubnetId = '%i'"
                          % parent_subnet_id)
         for row in self.cur:
@@ -578,19 +604,24 @@ class PHPIPAM(AbstractIPAM):
             subnet = str(ip_address(int(row[0])))
             item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             netlist.append(item)
         return netlist
 
     def get_subnet_list_by_desc(self, description):
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE description LIKE '%s'"
                          % description)
         netlist = list()
         for row in self.cur:
             item = {}
             subnet = str(ip_address(int(row[0])))
-            item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
+            netmask = row[1]
+            if netmask == '':
+                netmask = 0
+            item['subnet'] = ip_network("%s/%s" % (subnet, netmask))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             netlist.append(item)
         return netlist
 
@@ -602,7 +633,7 @@ class PHPIPAM(AbstractIPAM):
             return subnetlist[0]
 
     def get_subnet_by_id(self, subnetid):
-        self.cur.execute("SELECT subnet,mask,description FROM subnets \
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE id=%d"
                          % subnetid)
         row = self.cur.fetchone()
@@ -611,6 +642,7 @@ class PHPIPAM(AbstractIPAM):
             subnet = str(ip_address(int(row[0])))
             item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
             item['description'] = row[2]
+            item['vlan_id'] = row[3]
             return item
         return None
 
