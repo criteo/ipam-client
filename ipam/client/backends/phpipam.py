@@ -616,7 +616,10 @@ class PHPIPAM(AbstractIPAM):
         for row in self.cur:
             item = {}
             subnet = str(ip_address(int(row[0])))
-            item['subnet'] = ip_network("%s/%s" % (subnet, row[1]))
+            netmask = row[1]
+            if netmask == '':
+                netmask = 0
+            item['subnet'] = ip_network("%s/%s" % (subnet, netmask))
             item['description'] = row[2]
             item['vlan_id'] = row[3]
             netlist.append(item)
