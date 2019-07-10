@@ -497,26 +497,29 @@ class PHPIPAM(AbstractIPAM):
         Returns a subnet with all its allocated ip addresses
         """
 
-        subnetid = self.find_subnet_id(subnet)
+        ipam_subnet = {}
 
-        ipam_subnet = self.get_subnet_by_id(subnetid)
-
-        self.cur.execute('SELECT ip_addr,description,{},state '
-                         'FROM ipaddresses '
-                         'WHERE subnetId = {}'
-                         ''.format(self.hostname_db_field, subnetid))
-
+        self.cur.execute('SELECT ip.ip_addr,ip.description,ip.{},ip.state,'
+                         's.description,s.vlanId '
+                         'FROM ipaddresses ip LEFT JOIN subnets s '
+                         'ON ip.subnetId = s.id '
+                         "WHERE s.subnet='{}' AND s.mask='{}'"
+                         ''.format(self.hostname_db_field,
+                                   int(subnet.network_address),
+                                   subnet.prefixlen))
         iplist = list()
         for row in self.cur:
+            if not ipam_subnet:
+                ipam_subnet['subnet'] = subnet
+                ipam_subnet['description'] = row[4]
+                ipam_subnet['vlan_id'] = row[5]
             item = {}
             item['ip'] = ip_address(int(row[0]))
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['state'] = row[3]
             iplist.append(item)
-
         ipam_subnet['ips'] = iplist
-
         return ipam_subnet
 
     def get_ipnetwork_by_desc(self, description):
