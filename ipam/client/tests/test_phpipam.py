@@ -841,9 +841,6 @@ def test_get_subnet_with_ips(testphpipam):
                                    'dnsname': 'test-ip-14',
                                    'description': 'test ip #14'}]}
 
-    with pytest.raises(ValueError, match='Unable to get subnet id'):
-        testphpipam.get_subnet_with_ips(ip_network('1.2.3.0/24'))
-
 
 def test_get_num_ips_by_desc(testphpipam):
     assert testphpipam.get_num_ips_by_desc('unknown ip') == 0
