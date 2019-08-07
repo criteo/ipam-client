@@ -36,7 +36,7 @@ INSERT INTO "ipaddresses" VALUES (11,2,'167903236','test ip #11','test-ip-11',''
 INSERT INTO "ipaddresses" VALUES (12,2,'167903237','test ip #12','test-ip-12','','','1',0,'','','NULL','0','NULL');
 INSERT INTO "ipaddresses" VALUES (13,2,'167903238','test ip #13','test-ip-13','','','1',0,'','','NULL','0','NULL');
 INSERT INTO "ipaddresses" VALUES (14,3,'167968770','test ip #14','test-ip-14','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (15,5,'168099840','test ip #15','test-ip-15','','','1',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (15,5,'168099840','test ip #15','test-ip-15','52:24:10:00:00:02','','1',0,'','','NULL','0','NULL');
 CREATE TABLE "sections" (
   "id" int(11) NOT NULL ,
   "name" varchar(128) NOT NULL DEFAULT '',

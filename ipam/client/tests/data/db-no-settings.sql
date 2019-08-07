@@ -1,5 +1,3 @@
-PRAGMA synchronous = OFF;
-PRAGMA journal_mode = MEMORY;
 BEGIN TRANSACTION;
 CREATE TABLE "settings" (
   "id" INTEGER PRIMARY KEY,

@@ -7,11 +7,11 @@ class AbstractIPAM:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def add_ip(self, ipaddr, dnsname, description):
+    def add_ip(self, ipaddr, dnsname, description, mac=None):
         raise NotImplementedError()
 
     @abstractmethod
-    def add_next_ip(self, subnet, dnsname, description):
+    def add_next_ip(self, subnet, dnsname, description, mac=None):
         raise NotImplementedError()
 
     @abstractmethod
@@ -39,6 +39,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def get_mac_by_ip(self, ip):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_ip_interface_list_by_desc(self, description):
         raise NotImplementedError()
 
@@ -60,6 +64,14 @@ class AbstractIPAM:
 
     @abstractmethod
     def get_ip_by_desc(self, description):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_ip_list_by_mac(self, mac):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_ip_by_mac(self, mac):
         raise NotImplementedError()
 
     @abstractmethod
