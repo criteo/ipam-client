@@ -95,4 +95,5 @@ CREATE INDEX "ipaddresses_dns_name" ON "ipaddresses" ("dns_name");
 CREATE INDEX "ipaddresses_ip_addr" ON "ipaddresses" ("ip_addr");
 CREATE INDEX "ipaddresses_description" ON "ipaddresses" ("description");
 CREATE INDEX "ipaddresses_subnetid" ON "ipaddresses" ("subnetId");
+CREATE INDEX "ipaddresses_mac" ON "ipaddresses" ("mac");
 END TRANSACTION;
