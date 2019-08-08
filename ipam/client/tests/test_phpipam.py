@@ -631,6 +631,12 @@ def test_get_ip_list_by_desc(testphpipam):
                        'mac': ''}]
 
 
+def test_get_mac_by_ip(testphpipam):
+    mac = testphpipam.get_mac_by_ip(ip_address('10.5.0.0'))
+    assert mac == '52:24:10:00:00:02'
+    assert testphpipam.get_ip_by_mac('unknown ip') is None
+
+
 def test_get_ip_list_by_mac(testphpipam):
     assert testphpipam.get_ip_list_by_mac('unknown ip') == []
 
@@ -937,6 +943,13 @@ def test_edit_ip_description(testphpipam):
         testphpipam.edit_ip_description(ip_interface('1.2.3.4/28'),
                                         'err')
     assert "Unable to get subnet id" in str(excinfo.value)
+
+
+def test_edit_ip_mac(testphpipam):
+    testphpipam.edit_ip_mac(ip_interface('10.5.0.0/31'),
+                            '54:52:00:00:00:03')
+    mac = testphpipam.get_mac_by_ip(ip_address('10.5.0.0'))
+    assert mac == '54:52:00:00:00:03'
 
 
 def test_edit_subnet_description(testphpipam):
