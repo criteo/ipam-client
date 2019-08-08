@@ -603,6 +603,7 @@ def test_get_ip_interface_by_desc(testphpipam):
     testip = testphpipam.get_ip_interface_by_desc('non-existent ip')
     assert testip is None
 
+
 def test_get_ipnetwork_by_desc(testphpipam):
     assert testphpipam.get_ipnetwork_by_desc('unknown ip') is None
 
@@ -629,6 +630,7 @@ def test_get_ip_list_by_desc(testphpipam):
                        'state': 1,
                        'mac': ''}]
 
+
 def test_get_ip_list_by_mac(testphpipam):
     assert testphpipam.get_ip_list_by_mac('unknown ip') == []
 
@@ -638,6 +640,7 @@ def test_get_ip_list_by_mac(testphpipam):
                        'dnsname': 'test-ip-15',
                        'state': 1,
                        'mac': '52:24:10:00:00:02'}]
+
 
 def test_get_ip_interface_list_by_desc(testphpipam):
     assert testphpipam.get_ip_interface_list_by_desc('unknown ip') == []

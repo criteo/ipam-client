@@ -139,8 +139,8 @@ class PHPIPAM(AbstractIPAM):
         with MySQLLock(self):
             subnetid = self.find_subnet_id(ipaddress)
             self.cur.execute("SELECT ip_addr FROM ipaddresses \
-                    WHERE ip_addr='%d' AND subnetId=%d LIMIT 1"
-                    % (ipaddress.ip, subnetid))
+                             WHERE ip_addr='%d' AND subnetId=%d LIMIT 1"
+                             % (ipaddress.ip, subnetid))
             row = self.cur.fetchone()
             if row is not None:
                 raise ValueError("IP address %s already registered"
@@ -165,7 +165,7 @@ class PHPIPAM(AbstractIPAM):
                                  VALUES (%d, '%d', '%s', '%s', '%s')"
                                  % (self.hostname_db_field, subnetid,
                                     ipaddress.ip, description, hostname,
-                                    '' if mac == None else mac))
+                                    '' if mac is None else mac))
                 return ipaddress
         except ValueError as e:
             raise ValueError("Unable to add next IP in %s: %s" % (
