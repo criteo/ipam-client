@@ -969,3 +969,10 @@ def test_edit_subnet_description(testphpipam):
 
 def test_get_version(testphpipam):
     assert isinstance(testphpipam._get_version(), float)
+
+
+def test_get_ip(testphpipam):
+    testip = {'ip': ip_interface('10.5.0.0/31'), 'description': 'test ip #15',
+              'dnsname': 'test-ip-15', 'mac': '52:24:10:00:00:02',
+              'subnet_name': 'TEST /31 SUBNET GROUP', 'vlan_id': 42}
+    assert testphpipam.get_ip(ip_address('10.5.0.0')) == testip

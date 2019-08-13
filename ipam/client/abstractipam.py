@@ -31,6 +31,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def get_ip(self, ip):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_hostname_by_ip(self, ip):
         raise NotImplementedError()
 

@@ -466,6 +466,30 @@ class PHPIPAM(AbstractIPAM):
                              % subnet_id)
         return True
 
+    def get_ip(self, ip):
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
+                              s.mask,s.description,v.number,ip.mac\
+                          FROM ipaddresses ip\
+                          LEFT JOIN subnets s ON\
+                              ip.subnetId = s.id\
+                          LEFT JOIN vlans v ON\
+                              s.vlanId = v.vlanId\
+                          WHERE ip.ip_addr = '%d'\
+                              AND ip.state = 1"
+                          % (self.hostname_db_field, ip))
+        row = self.cur.fetchone()
+        if row is not None:
+            item = {}
+            net_ip_address = ip_address(int(row[0]))
+            item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
+            item['description'] = row[1]
+            item['dnsname'] = row[2]
+            item['subnet_name'] = row[4]
+            item['vlan_id'] = row[5]
+            item['mac'] = row[6]
+            return item
+        return None
+
     def get_hostname_by_ip(self, ip):
         self.cur.execute("SELECT %s FROM ipaddresses \
                          WHERE ip_addr='%d'"
