@@ -381,8 +381,28 @@ class PHPIPAM(AbstractIPAM):
                              % (description, ipaddress.ip, subnetid))
         return True
 
+    def edit_ip_hostname(self, ipaddress, hostname):
+        """Edit an IP address hostname in IPAM. ipaddress must be an
+        instance of ip_interface with correct prefix length.
+        """
+        with MySQLLock(self):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError("IP address %s not present"
+                                 % (ipaddress.ip))
+            self.cur.execute("UPDATE ipaddresses \
+                             SET %s='%s' \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (self.hostname_db_field, hostname,
+                                ipaddress.ip, subnetid))
+        return True
+
     def edit_ip_mac(self, ipaddress, mac):
-        """Edit an IP address description in IPAM. ipaddress must be an
+        """Edit an IP address MAC in IPAM. ipaddress must be an
         instance of ip_interface with correct prefix length.
         """
         with MySQLLock(self):
@@ -476,7 +496,7 @@ class PHPIPAM(AbstractIPAM):
                               s.vlanId = v.vlanId\
                           WHERE ip.ip_addr = '%d'\
                               AND ip.state = 1"
-                          % (self.hostname_db_field, ip))
+                         % (self.hostname_db_field, ip))
         row = self.cur.fetchone()
         if row is not None:
             item = {}

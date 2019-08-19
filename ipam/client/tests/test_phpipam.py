@@ -945,6 +945,23 @@ def test_edit_ip_description(testphpipam):
     assert "Unable to get subnet id" in str(excinfo.value)
 
 
+def test_edit_ip_hostname(testphpipam):
+    testphpipam.edit_ip_hostname(ip_interface('10.1.0.1/28'),
+                                 'test-ip-1-changed')
+    assert testphpipam.get_hostname_by_ip(
+        ip_address('10.1.0.1')) == 'test-ip-1-changed'
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('10.1.0.4/28'),
+                                        'err')
+    assert "not present" in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('1.2.3.4/28'),
+                                        'err')
+    assert "Unable to get subnet id" in str(excinfo.value)
+
+
 def test_edit_ip_mac(testphpipam):
     testphpipam.edit_ip_mac(ip_interface('10.5.0.0/31'),
                             '54:52:00:00:00:03')
