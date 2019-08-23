@@ -133,7 +133,7 @@ class PHPIPAM(AbstractIPAM):
             "for subnet {}".format(subnet)
         )
 
-    def add_ip(self, ipaddress, hostname, description):
+    def add_ip(self, ipaddress, hostname, description, mac=None):
         """ Adds an IP address in IPAM. ipaddress must be an
         instance of ip_interface. Returns True """
         with MySQLLock(self):
@@ -146,13 +146,14 @@ class PHPIPAM(AbstractIPAM):
                 raise ValueError("IP address %s already registered"
                                  % (ipaddress.ip))
             self.cur.execute("INSERT INTO ipaddresses \
-                             (subnetId, ip_addr, description, %s) \
-                             VALUES (%d, '%d', '%s', '%s')"
+                             (subnetId, ip_addr, description, %s, mac) \
+                             VALUES (%d, '%d', '%s', '%s', '%s')"
                              % (self.hostname_db_field, subnetid,
-                                ipaddress.ip, description, hostname))
+                                ipaddress.ip, description, hostname,
+                                '' if mac is None else mac))
         return True
 
-    def add_next_ip(self, subnet, hostname, description):
+    def add_next_ip(self, subnet, hostname, description, mac=None):
         """ Finds next free ip in subnet, and adds it in IPAM.
         Returns IP address as ip_interface """
         try:
@@ -160,10 +161,11 @@ class PHPIPAM(AbstractIPAM):
                 ipaddress = self.get_next_free_ip(subnet)
                 subnetid = self.find_subnet_id(ipaddress)
                 self.cur.execute("INSERT INTO ipaddresses \
-                                 (subnetId, ip_addr, description, %s) \
-                                 VALUES (%d, '%d', '%s', '%s')"
+                                 (subnetId, ip_addr, description, %s, mac) \
+                                 VALUES (%d, '%d', '%s', '%s', '%s')"
                                  % (self.hostname_db_field, subnetid,
-                                    ipaddress.ip, description, hostname))
+                                    ipaddress.ip, description, hostname,
+                                    '' if mac is None else mac))
                 return ipaddress
         except ValueError as e:
             raise ValueError("Unable to add next IP in %s: %s" % (
@@ -379,6 +381,45 @@ class PHPIPAM(AbstractIPAM):
                              % (description, ipaddress.ip, subnetid))
         return True
 
+    def edit_ip_hostname(self, ipaddress, hostname):
+        """Edit an IP address hostname in IPAM. ipaddress must be an
+        instance of ip_interface with correct prefix length.
+        """
+        with MySQLLock(self):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError("IP address %s not present"
+                                 % (ipaddress.ip))
+            self.cur.execute("UPDATE ipaddresses \
+                             SET %s='%s' \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (self.hostname_db_field, hostname,
+                                ipaddress.ip, subnetid))
+        return True
+
+    def edit_ip_mac(self, ipaddress, mac):
+        """Edit an IP address MAC in IPAM. ipaddress must be an
+        instance of ip_interface with correct prefix length.
+        """
+        with MySQLLock(self):
+            subnetid = self.find_subnet_id(ipaddress)
+            self.cur.execute("SELECT ip_addr FROM ipaddresses \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (ipaddress.ip, subnetid))
+            row = self.cur.fetchone()
+            if row is None:
+                raise ValueError("IP address %s not present"
+                                 % (ipaddress.ip))
+            self.cur.execute("UPDATE ipaddresses \
+                             SET mac='%s' \
+                             WHERE ip_addr='%d' AND subnetId=%d"
+                             % (mac, ipaddress.ip, subnetid))
+        return True
+
     def edit_subnet_description(self, subnet, description):
         """Edit a subnet description in IPAM. subnet must be an
         instance of ip_network and the description must not be
@@ -445,6 +486,30 @@ class PHPIPAM(AbstractIPAM):
                              % subnet_id)
         return True
 
+    def get_ip(self, ip):
+        self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
+                              s.mask,s.description,v.number,ip.mac\
+                          FROM ipaddresses ip\
+                          LEFT JOIN subnets s ON\
+                              ip.subnetId = s.id\
+                          LEFT JOIN vlans v ON\
+                              s.vlanId = v.vlanId\
+                          WHERE ip.ip_addr = '%d'\
+                              AND ip.state = 1"
+                         % (self.hostname_db_field, ip))
+        row = self.cur.fetchone()
+        if row is not None:
+            item = {}
+            net_ip_address = ip_address(int(row[0]))
+            item['ip'] = ip_interface(str(net_ip_address) + "/" + row[3])
+            item['description'] = row[1]
+            item['dnsname'] = row[2]
+            item['subnet_name'] = row[4]
+            item['vlan_id'] = row[5]
+            item['mac'] = row[6]
+            return item
+        return None
+
     def get_hostname_by_ip(self, ip):
         self.cur.execute("SELECT %s FROM ipaddresses \
                          WHERE ip_addr='%d'"
@@ -463,6 +528,15 @@ class PHPIPAM(AbstractIPAM):
             return row[0]
         return None
 
+    def get_mac_by_ip(self, ip):
+        self.cur.execute("SELECT mac FROM ipaddresses \
+                         WHERE ip_addr='%d'"
+                         % ip)
+        row = self.cur.fetchone()
+        if row is not None:
+            return row[0]
+        return None
+
     def get_ipnetwork_list_by_desc(self, description):
         """
         Wrapper for backward compatibility
@@ -471,7 +545,7 @@ class PHPIPAM(AbstractIPAM):
 
     def get_ip_interface_list_by_desc(self, description):
         self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
-                              s.mask,s.description,v.number\
+                              s.mask,s.description,v.number,ip.mac\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
                               ip.subnetId = s.id\
@@ -489,6 +563,7 @@ class PHPIPAM(AbstractIPAM):
             item['dnsname'] = row[2]
             item['subnet_name'] = row[4]
             item['vlan_id'] = row[5]
+            item['mac'] = row[6]
             iplist.append(item)
         return iplist
 
@@ -500,7 +575,7 @@ class PHPIPAM(AbstractIPAM):
         ipam_subnet = {}
 
         self.cur.execute('SELECT ip.ip_addr,ip.description,ip.{},ip.state,'
-                         's.description,s.vlanId '
+                         's.description,s.vlanId,ip.mac '
                          'FROM ipaddresses ip LEFT JOIN subnets s '
                          'ON ip.subnetId = s.id '
                          "WHERE s.subnet='{}' AND s.mask='{}'"
@@ -518,6 +593,7 @@ class PHPIPAM(AbstractIPAM):
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['state'] = row[3]
+            item['mac'] = row[6]
             iplist.append(item)
         ipam_subnet['ips'] = iplist
         return ipam_subnet
@@ -543,7 +619,7 @@ class PHPIPAM(AbstractIPAM):
 
     def get_ip_interface_list_by_subnet_name(self, subnet_name):
         self.cur.execute("SELECT ip.ip_addr,ip.description,ip.%s,\
-                              s.mask,s.description\
+                              s.mask,s.description,ip.mac\
                           FROM ipaddresses ip\
                           LEFT JOIN subnets s ON\
                               ip.subnetId = s.id\
@@ -558,6 +634,7 @@ class PHPIPAM(AbstractIPAM):
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['subnet_name'] = row[4]
+            item['mac'] = row[5]
             iplist.append(item)
         return iplist
 
@@ -575,7 +652,7 @@ class PHPIPAM(AbstractIPAM):
             return iplist[0]
 
     def get_ip_list_by_desc(self, description):
-        self.cur.execute("SELECT ip_addr,description,%s,state \
+        self.cur.execute("SELECT ip_addr,description,%s,state,mac \
                          FROM ipaddresses \
                          WHERE description LIKE '%s'"
                          % (self.hostname_db_field, description))
@@ -586,11 +663,35 @@ class PHPIPAM(AbstractIPAM):
             item['description'] = row[1]
             item['dnsname'] = row[2]
             item['state'] = int(row[3])
+            item['mac'] = row[4]
             iplist.append(item)
         return iplist
 
     def get_ip_by_desc(self, description):
         iplist = self.get_ip_list_by_desc(description)
+        if iplist == []:
+            return None
+        else:
+            return iplist[0]
+
+    def get_ip_list_by_mac(self, mac):
+        self.cur.execute("SELECT ip_addr,description,%s,state,mac \
+                         FROM ipaddresses \
+                         WHERE mac LIKE '%s'"
+                         % (self.hostname_db_field, mac))
+        iplist = list()
+        for row in self.cur:
+            item = {}
+            item['ip'] = ip_address(int(row[0]))
+            item['description'] = row[1]
+            item['dnsname'] = row[2]
+            item['state'] = int(row[3])
+            item['mac'] = row[4]
+            iplist.append(item)
+        return iplist
+
+    def get_ip_by_mac(self, mac):
+        iplist = self.get_ip_list_by_mac(mac)
         if iplist == []:
             return None
         else:

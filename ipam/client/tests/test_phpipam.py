@@ -132,6 +132,12 @@ def test_add_ip(testphpipam):
     hostname = 'add_ip generated-ip-1'
     assert testphpipam.add_ip(ip, hostname, description) is True
 
+    ip = ip_interface('10.1.0.5/28')
+    description = 'add_ip generated ip 2 with mac'
+    hostname = 'add_ip generated-ip-2-mac'
+    mac = '52:24:10:00:00:02'
+    assert testphpipam.add_ip(ip, hostname, description, mac) is True
+
     ip = ip_interface('10.42.0.1/28')
     with pytest.raises(ValueError) as excinfo:
         testphpipam.add_ip(ip, 'err', 'err')
@@ -483,7 +489,8 @@ def test_delete_ip(testphpipam):
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
                        'dnsname': 'test-ip-2',
-                       'state': 1}]
+                       'state': 1,
+                       'mac': ''}]
     testphpipam.delete_ip(ip_interface('10.1.0.2/28'))
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
     assert iplist == []
@@ -608,17 +615,37 @@ def test_get_ip_list_by_desc(testphpipam):
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
                        'dnsname': 'test-ip-2',
-                       'state': 1}]
+                       'state': 1,
+                       'mac': ''}]
 
     iplist = testphpipam.get_ip_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_address('10.2.0.1'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-8',
-                       'state': 1},
+                       'state': 1,
+                       'mac': ''},
                       {'ip': ip_address('10.2.0.2'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-9',
-                       'state': 1}]
+                       'state': 1,
+                       'mac': ''}]
+
+
+def test_get_mac_by_ip(testphpipam):
+    mac = testphpipam.get_mac_by_ip(ip_address('10.5.0.0'))
+    assert mac == '52:24:10:00:00:02'
+    assert testphpipam.get_ip_by_mac('unknown ip') is None
+
+
+def test_get_ip_list_by_mac(testphpipam):
+    assert testphpipam.get_ip_list_by_mac('unknown ip') == []
+
+    iplist = testphpipam.get_ip_list_by_mac('52:24:10:00:00:02')
+    assert iplist == [{'ip': ip_address('10.5.0.0'),
+                       'description': 'test ip #15',
+                       'dnsname': 'test-ip-15',
+                       'state': 1,
+                       'mac': '52:24:10:00:00:02'}]
 
 
 def test_get_ip_interface_list_by_desc(testphpipam):
@@ -629,20 +656,23 @@ def test_get_ip_interface_list_by_desc(testphpipam):
                        'description': 'test ip #2',
                        'dnsname': 'test-ip-2',
                        'subnet_name': 'TEST /28 SUBNET',
-                       'vlan_id': 42
+                       'vlan_id': 42,
+                       'mac': ''
                        }]
     iplist = testphpipam.get_ip_interface_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_interface('10.2.0.1/29'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-8',
                        'subnet_name': 'TEST FULL /29 SUBNET',
-                       'vlan_id': None
+                       'vlan_id': None,
+                       'mac': ''
                        },
                       {'ip': ip_interface('10.2.0.2/29'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-9',
                        'subnet_name': 'TEST FULL /29 SUBNET',
-                       'vlan_id': None}
+                       'vlan_id': None,
+                       'mac': ''}
                       ]
 
 
@@ -655,7 +685,8 @@ def test_get_ip_interface_by_subnet_name(testphpipam):
     assert ip == {'description': u'test ip #1',
                   'dnsname': u'test-ip-1',
                   'ip': ip_interface('10.1.0.1/28'),
-                  'subnet_name': u'TEST /28 SUBNET'}
+                  'subnet_name': u'TEST /28 SUBNET',
+                  'mac': ''}
     ip = testphpipam.get_ip_interface_by_subnet_name('non-existent ip')
     assert ip is None
 
@@ -670,59 +701,73 @@ def test_get_ip_interface_list_by_subnet_name(testphpipam):
     assert iplist == [{'description': u'test ip #1',
                        'dnsname': u'test-ip-1',
                        'ip': ip_interface('10.1.0.1/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #2',
                        'dnsname': u'test-ip-2',
                        'ip': ip_interface('10.1.0.2/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #3',
                        'dnsname': u'test-ip-3',
                        'ip': ip_interface('10.1.0.3/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #4',
                        'dnsname': u'test-ip-4',
                        'ip': ip_interface('10.1.0.7/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #5',
                        'dnsname': u'test-ip-5',
                        'ip': ip_interface('10.1.0.8/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #6',
                        'dnsname': u'test-ip-6',
                        'ip': ip_interface('10.1.0.9/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #7',
                        'dnsname': u'test-ip-7',
                        'ip': ip_interface('10.1.0.10/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip group 1',
                        'dnsname': u'test-ip-8',
                        'ip': ip_interface('10.2.0.1/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip group 1',
                        'dnsname': u'test-ip-9',
                        'ip': ip_interface('10.2.0.2/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #10',
                        'dnsname': u'test-ip-10',
                        'ip': ip_interface('10.2.0.3/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #11',
                        'dnsname': u'test-ip-11',
                        'ip': ip_interface('10.2.0.4/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #12',
                        'dnsname': u'test-ip-12',
                        'ip': ip_interface('10.2.0.5/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #13',
                        'dnsname': u'test-ip-13',
                        'ip': ip_interface('10.2.0.6/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #15',
                        'dnsname': u'test-ip-15',
                        'ip': ip_interface('10.5.0.0/31'),
-                       'subnet_name': u'TEST /31 SUBNET GROUP'},
+                       'subnet_name': u'TEST /31 SUBNET GROUP',
+                       'mac': '52:24:10:00:00:02'},
                       ]
 
 
@@ -731,59 +776,73 @@ def test_get_ipnetwork_list_by_subnet_name(testphpipam):
     assert iplist == [{'description': u'test ip #1',
                        'dnsname': u'test-ip-1',
                        'ip': ip_interface('10.1.0.1/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #2',
                        'dnsname': u'test-ip-2',
                        'ip': ip_interface('10.1.0.2/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #3',
                        'dnsname': u'test-ip-3',
                        'ip': ip_interface('10.1.0.3/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #4',
                        'dnsname': u'test-ip-4',
                        'ip': ip_interface('10.1.0.7/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #5',
                        'dnsname': u'test-ip-5',
                        'ip': ip_interface('10.1.0.8/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #6',
                        'dnsname': u'test-ip-6',
                        'ip': ip_interface('10.1.0.9/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #7',
                        'dnsname': u'test-ip-7',
                        'ip': ip_interface('10.1.0.10/28'),
-                       'subnet_name': u'TEST /28 SUBNET'},
+                       'subnet_name': u'TEST /28 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip group 1',
                        'dnsname': u'test-ip-8',
                        'ip': ip_interface('10.2.0.1/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip group 1',
                        'dnsname': u'test-ip-9',
                        'ip': ip_interface('10.2.0.2/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #10',
                        'dnsname': u'test-ip-10',
                        'ip': ip_interface('10.2.0.3/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #11',
                        'dnsname': u'test-ip-11',
                        'ip': ip_interface('10.2.0.4/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #12',
                        'dnsname': u'test-ip-12',
                        'ip': ip_interface('10.2.0.5/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #13',
                        'dnsname': u'test-ip-13',
                        'ip': ip_interface('10.2.0.6/29'),
-                       'subnet_name': u'TEST FULL /29 SUBNET'},
+                       'subnet_name': u'TEST FULL /29 SUBNET',
+                       'mac': ''},
                       {'description': u'test ip #15',
                        'dnsname': u'test-ip-15',
                        'ip': ip_interface('10.5.0.0/31'),
-                       'subnet_name': u'TEST /31 SUBNET GROUP'},
+                       'subnet_name': u'TEST /31 SUBNET GROUP',
+                       'mac': '52:24:10:00:00:02'},
                       ]
 
 
@@ -839,7 +898,8 @@ def test_get_subnet_with_ips(testphpipam):
                           'ips': [{'ip': ip_address('10.3.0.2'),
                                    'state': '1',
                                    'dnsname': 'test-ip-14',
-                                   'description': 'test ip #14'}]}
+                                   'description': 'test ip #14',
+                                   'mac': ''}]}
 
 
 def test_get_num_ips_by_desc(testphpipam):
@@ -885,6 +945,30 @@ def test_edit_ip_description(testphpipam):
     assert "Unable to get subnet id" in str(excinfo.value)
 
 
+def test_edit_ip_hostname(testphpipam):
+    testphpipam.edit_ip_hostname(ip_interface('10.1.0.1/28'),
+                                 'test-ip-1-changed')
+    assert testphpipam.get_hostname_by_ip(
+        ip_address('10.1.0.1')) == 'test-ip-1-changed'
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('10.1.0.4/28'),
+                                        'err')
+    assert "not present" in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        testphpipam.edit_ip_description(ip_interface('1.2.3.4/28'),
+                                        'err')
+    assert "Unable to get subnet id" in str(excinfo.value)
+
+
+def test_edit_ip_mac(testphpipam):
+    testphpipam.edit_ip_mac(ip_interface('10.5.0.0/31'),
+                            '54:52:00:00:00:03')
+    mac = testphpipam.get_mac_by_ip(ip_address('10.5.0.0'))
+    assert mac == '54:52:00:00:00:03'
+
+
 def test_edit_subnet_description(testphpipam):
     subnet = ip_network('10.1.0.0/28')
     description = 'TEST /28 SUBNET EDITED'
@@ -902,3 +986,10 @@ def test_edit_subnet_description(testphpipam):
 
 def test_get_version(testphpipam):
     assert isinstance(testphpipam._get_version(), float)
+
+
+def test_get_ip(testphpipam):
+    testip = {'ip': ip_interface('10.5.0.0/31'), 'description': 'test ip #15',
+              'dnsname': 'test-ip-15', 'mac': '52:24:10:00:00:02',
+              'subnet_name': 'TEST /31 SUBNET GROUP', 'vlan_id': 42}
+    assert testphpipam.get_ip(ip_address('10.5.0.0')) == testip
