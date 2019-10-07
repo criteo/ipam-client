@@ -489,7 +489,7 @@ def test_delete_ip(testphpipam):
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
                        'dnsname': 'test-ip-2',
-                       'state': 1,
+                       'state': testphpipam.used_ip_state,
                        'mac': ''}]
     testphpipam.delete_ip(ip_interface('10.1.0.2/28'))
     iplist = testphpipam.get_ip_list_by_desc('test ip #2')
@@ -578,13 +578,13 @@ def test_get_ip_by_desc(testphpipam):
     assert testip['ip'] == ip_address('10.1.0.2')
     assert testip['description'] == 'test ip #2'
     assert testip['dnsname'] == 'test-ip-2'
-    assert testip['state'] == 1
+    assert testip['state'] == testphpipam.used_ip_state
 
     testip = testphpipam.get_ip_by_desc('test ip group 1')
     assert testip['ip'] == ip_address('10.2.0.1')
     assert testip['description'] == 'test ip group 1'
     assert testip['dnsname'] == 'test-ip-8'
-    assert testip['state'] == 1
+    assert testip['state'] == testphpipam.used_ip_state
 
 
 def test_get_ip_interface_by_desc(testphpipam):
@@ -615,19 +615,19 @@ def test_get_ip_list_by_desc(testphpipam):
     assert iplist == [{'ip': ip_address('10.1.0.2'),
                        'description': 'test ip #2',
                        'dnsname': 'test-ip-2',
-                       'state': 1,
+                       'state': testphpipam.used_ip_state,
                        'mac': ''}]
 
     iplist = testphpipam.get_ip_list_by_desc('test ip group 1')
     assert iplist == [{'ip': ip_address('10.2.0.1'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-8',
-                       'state': 1,
+                       'state': testphpipam.used_ip_state,
                        'mac': ''},
                       {'ip': ip_address('10.2.0.2'),
                        'description': 'test ip group 1',
                        'dnsname': 'test-ip-9',
-                       'state': 1,
+                       'state': testphpipam.used_ip_state,
                        'mac': ''}]
 
 
@@ -644,7 +644,7 @@ def test_get_ip_list_by_mac(testphpipam):
     assert iplist == [{'ip': ip_address('10.5.0.0'),
                        'description': 'test ip #15',
                        'dnsname': 'test-ip-15',
-                       'state': 1,
+                       'state': testphpipam.used_ip_state,
                        'mac': '52:24:10:00:00:02'}]
 
 
@@ -896,7 +896,7 @@ def test_get_subnet_with_ips(testphpipam):
     assert subnetlist == {'subnet': ip_network('10.3.0.0/30'),
                           'description': 'TST /30 SUBNET', 'vlan_id': 10,
                           'ips': [{'ip': ip_address('10.3.0.2'),
-                                   'state': '1',
+                                   'state': str(testphpipam.used_ip_state),
                                    'dnsname': 'test-ip-14',
                                    'description': 'test ip #14',
                                    'mac': ''}]}

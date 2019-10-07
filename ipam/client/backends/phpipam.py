@@ -52,6 +52,7 @@ class PHPIPAM(AbstractIPAM):
         dbtype = DEFAULT_IPAM_DB_TYPE
         subnet_options = DEFAULT_SUBNET_OPTIONS.copy()
         self.hostname_db_field = 'hostname'
+        self.used_ip_state = 2
         for (option, value) in DEFAULT_SUBNET_OPTIONS.items():
             param_name = 'subnet_{}'.format(option)
             if params.get(param_name):
@@ -84,6 +85,7 @@ class PHPIPAM(AbstractIPAM):
         if self._get_version() < 1.32:
             # Older PHPIPAM version use `dns_name` field instead of `hostname`
             self.hostname_db_field = 'dns_name'
+            self.used_ip_state = 1
 
     def set_section_id(self, section_id):
         self.section_id = section_id
@@ -495,8 +497,8 @@ class PHPIPAM(AbstractIPAM):
                           LEFT JOIN vlans v ON\
                               s.vlanId = v.vlanId\
                           WHERE ip.ip_addr = '%d'\
-                              AND ip.state = 1"
-                         % (self.hostname_db_field, ip))
+                              AND ip.state = %d"
+                         % (self.hostname_db_field, ip, self.used_ip_state))
         row = self.cur.fetchone()
         if row is not None:
             item = {}
@@ -552,8 +554,10 @@ class PHPIPAM(AbstractIPAM):
                           LEFT JOIN vlans v ON\
                               s.vlanId = v.vlanId\
                           WHERE ip.description LIKE '%s'\
-                              AND ip.state = 1"
-                         % (self.hostname_db_field, description))
+                              AND ip.state = %d"
+                         % (self.hostname_db_field,
+                            description,
+                            self.used_ip_state))
         iplist = list()
         for row in self.cur:
             item = {}
@@ -624,8 +628,10 @@ class PHPIPAM(AbstractIPAM):
                           LEFT JOIN subnets s ON\
                               ip.subnetId = s.id\
                           WHERE s.description LIKE '%s'\
-                              AND ip.state = 1"
-                         % (self.hostname_db_field, subnet_name))
+                              AND ip.state = %d"
+                         % (self.hostname_db_field,
+                            subnet_name,
+                            self.used_ip_state))
         iplist = list()
         for row in self.cur:
             item = {}
@@ -753,8 +759,8 @@ class PHPIPAM(AbstractIPAM):
     def get_num_ips_by_desc(self, description):
         self.cur.execute("SELECT COUNT(ip_addr) FROM ipaddresses \
                          WHERE description LIKE '%s'\
-                              AND state = '1'"
-                         % (description))
+                              AND state = %d"
+                         % (description, self.used_ip_state))
         row = self.cur.fetchone()
         return int(row[0])
 
