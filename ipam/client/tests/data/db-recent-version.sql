@@ -14,7 +14,7 @@ CREATE TABLE "ipaddresses" (
   "hostname" varchar(64) NOT NULL,
   "mac" varchar(20) DEFAULT NULL,
   "owner" varchar(32) DEFAULT NULL,
-  "state" varchar(1) DEFAULT '1',
+  "state" varchar(1) DEFAULT '2',
   "switch" int(11)  DEFAULT NULL,
   "port" varchar(32) DEFAULT NULL,
   "note" text,
@@ -22,21 +22,21 @@ CREATE TABLE "ipaddresses" (
   "excludePing" binary(1) DEFAULT '0',
   "editDate" timestamp DEFAULT NULL
 );
-INSERT INTO "ipaddresses" VALUES (1,1,'167837697','test ip #1','test-ip-1','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (2,1,'167837698','test ip #2','test-ip-2','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (3,1,'167837699','test ip #3','test-ip-3','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (4,1,'167837703','test ip #4','test-ip-4','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (5,1,'167837704','test ip #5','test-ip-5','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (6,1,'167837705','test ip #6','test-ip-6','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (7,1,'167837706','test ip #7','test-ip-7','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (8,2,'167903233','test ip group 1','test-ip-8','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (9,2,'167903234','test ip group 1','test-ip-9','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (10,2,'167903235','test ip #10','test-ip-10','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (11,2,'167903236','test ip #11','test-ip-11','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (12,2,'167903237','test ip #12','test-ip-12','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (13,2,'167903238','test ip #13','test-ip-13','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (14,3,'167968770','test ip #14','test-ip-14','','','1',0,'','','NULL','0','NULL');
-INSERT INTO "ipaddresses" VALUES (15,5,'168099840','test ip #15','test-ip-15','52:24:10:00:00:02','','1',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (1,1,'167837697','test ip #1','test-ip-1','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (2,1,'167837698','test ip #2','test-ip-2','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (3,1,'167837699','test ip #3','test-ip-3','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (4,1,'167837703','test ip #4','test-ip-4','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (5,1,'167837704','test ip #5','test-ip-5','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (6,1,'167837705','test ip #6','test-ip-6','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (7,1,'167837706','test ip #7','test-ip-7','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (8,2,'167903233','test ip group 1','test-ip-8','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (9,2,'167903234','test ip group 1','test-ip-9','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (10,2,'167903235','test ip #10','test-ip-10','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (11,2,'167903236','test ip #11','test-ip-11','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (12,2,'167903237','test ip #12','test-ip-12','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (13,2,'167903238','test ip #13','test-ip-13','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (14,3,'167968770','test ip #14','test-ip-14','','','2',0,'','','NULL','0','NULL');
+INSERT INTO "ipaddresses" VALUES (15,5,'168099840','test ip #15','test-ip-15','52:24:10:00:00:02','','2',0,'','','NULL','0','NULL');
 CREATE TABLE "sections" (
   "id" int(11) NOT NULL ,
   "name" varchar(128) NOT NULL DEFAULT '',
