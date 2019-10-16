@@ -587,6 +587,26 @@ def test_get_ip_by_desc(testphpipam):
     assert testip['state'] == testphpipam.used_ip_state
 
 
+def test_get_ip_by_desc_and_subnet(testphpipam):
+    with pytest.raises(
+        ValueError,
+        match='Unable to get subnet id from database for this subnet: '
+              '10.0.0.0'
+    ):
+        testphpipam.get_ip_by_desc_and_subnet('unknown ip', '10.0.0.0')
+
+    testip = testphpipam.get_ip_by_desc_and_subnet(
+        'test ip #2', '10.1.0.0'
+    )
+    assert testip == ip_address('10.1.0.2')
+
+    with pytest.raises(
+        ValueError,
+        match='Unable to get unknown ip in the subnet 10.1.0.0'
+    ):
+        testphpipam.get_ip_by_desc_and_subnet('unknown ip', '10.1.0.0')
+
+
 def test_get_ip_interface_by_desc(testphpipam):
     assert testphpipam.get_ip_by_desc('unknown ip') is None
 

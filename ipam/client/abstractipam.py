@@ -71,6 +71,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def get_ip_by_desc_and_subnet(self, description, subnet_description):
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_ip_list_by_mac(self, mac):
         raise NotImplementedError()
 
