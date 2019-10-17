@@ -680,6 +680,33 @@ class PHPIPAM(AbstractIPAM):
         else:
             return iplist[0]
 
+    def get_ip_by_desc_and_subnet(self, description, subnet):
+        self.cur.execute("SELECT id \
+                         FROM subnets \
+                         WHERE subnet = '%i'" % int(ip_address((subnet))))
+        row = self.cur.fetchone()
+        if row is not None:
+            subnet_id = int(row[0])
+        else:
+            raise ValueError(
+                "Unable to get subnet id from database "
+                "for this subnet: {}".format(subnet)
+            )
+
+        self.cur.execute("SELECT ip_addr \
+                         FROM ipaddresses \
+                         WHERE description LIKE '%s' AND subnetId = '%i'"
+                         % (description, subnet_id))
+
+        row = self.cur.fetchone()
+        if row is not None:
+            return ip_address(int(row[0]))
+
+        raise ValueError(
+            "Unable to get {} in the subnet {} from database".format(
+                description, subnet)
+        )
+
     def get_ip_list_by_mac(self, mac):
         self.cur.execute("SELECT ip_addr,description,%s,state,mac \
                          FROM ipaddresses \
