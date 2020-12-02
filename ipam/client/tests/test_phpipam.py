@@ -159,8 +159,13 @@ def test_add_next_ip(testphpipam):
         assert testip['dnsname'] == hostname
         assert testip['description'] == description
 
+    # test allow_duplicates False, IP is already allocated, we should obtain it again
+    ip = testphpipam.add_next_ip(subnet, hostname, description, allow_duplicates=False)
+    assert ip.ip == ipaddr
+
+    # test full subnet - set allow_duplicates=False to force lookup first
     with pytest.raises(ValueError) as excinfo:
-        testphpipam.add_next_ip(subnet, 'err', 'err')
+        testphpipam.add_next_ip(subnet, 'err', 'err', allow_duplicates=False)
     assert "is full" in str(excinfo.value)
 
     subnet = ip_network('10.2.0.0/29')
@@ -302,16 +307,19 @@ def test_add_next_ip(testphpipam):
     assert testip['dnsname'] == hostname
     assert testip['description'] == description
 
-    description = 'add_next_ip generated ip 27'
-    hostname = 'add_next_ip generated-ip-24'
+    # Test duplicates allocation
     ipaddr = ip_address('2001::51')
     ip = testphpipam.add_next_ip(subnet, hostname, description)
     assert ip.ip == ipaddr
     assert ip.network.prefixlen == 127
-    testip = testphpipam.get_ip_by_desc(description)
-    assert testip['ip'] == ipaddr
-    assert testip['dnsname'] == hostname
-    assert testip['description'] == description
+    testiplist = testphpipam.get_ip_list_by_desc(description)
+    assert len(testiplist) == 2
+    assert testiplist[0]['ip'] == ip_address('2001::50')
+    assert testiplist[1]['ip'] == ipaddr
+    assert testiplist[0]['dnsname'] == hostname
+    assert testiplist[1]['dnsname'] == hostname
+    assert testiplist[0]['description'] == description
+    assert testiplist[1]['description'] == description
 
     with pytest.raises(ValueError) as excinfo:
         testphpipam.add_next_ip(subnet, 'err', 'err')

@@ -155,11 +155,21 @@ class PHPIPAM(AbstractIPAM):
                                 '' if mac is None else mac))
         return True
 
-    def add_next_ip(self, subnet, hostname, description, mac=None):
+    def add_next_ip(self, subnet, hostname, description, mac=None, allow_duplicates=True):
         """ Finds next free ip in subnet, and adds it in IPAM.
+        If allow_duplicates is False, lookup for IP matching hostname and if any,
+        return it instead of allocating a new one.
         Returns IP address as ip_interface """
         try:
             with MySQLLock(self):
+                if not allow_duplicates:
+                    ipaddress = None
+                    try:
+                        ipaddress = self.get_ip_by_desc_and_subnet(description, subnet.network_address)
+                    except ValueError:
+                        pass
+                    if ipaddress:
+                        return ip_interface("%s/%d" % (ipaddress, subnet.prefixlen))
                 ipaddress = self.get_next_free_ip(subnet)
                 subnetid = self.find_subnet_id(ipaddress)
                 self.cur.execute("INSERT INTO ipaddresses \
