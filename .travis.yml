@@ -5,9 +5,6 @@ python:
 - '3.5'
 - '3.6'
 install:
-# Workaround mysql-connector-python depencies issue: https://bugs.mysql.com/bug.php?id=89889
-- pip download --no-deps --implementation py --only-binary=':all:' mysql-connector-python==8.0.15
-- pip install ./mysql_connector_python-8.0.15-py2.py3-none-any.whl
 - pip install -r test-requirements.txt
 - pip install -r requirements.txt
 script:

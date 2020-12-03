@@ -1,2 +1,2 @@
-ipaddress>=1.0.22,<1.1
-mysql-connector-python>=8.0.15,<8.1
+ipaddress
+mysql-connector-python
