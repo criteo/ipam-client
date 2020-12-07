@@ -11,7 +11,7 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
-    def add_next_ip(self, subnet, dnsname, description, mac=None):
+    def add_next_ip(self, subnet, dnsname, description, mac=None, allow_duplicates=True):
         raise NotImplementedError()
 
     @abstractmethod
