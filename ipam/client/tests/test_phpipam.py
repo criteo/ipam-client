@@ -874,6 +874,16 @@ def test_get_ipnetwork_list_by_subnet_name(testphpipam):
                       ]
 
 
+def test_get_subnet(testphpipam):
+    assert testphpipam.get_subnet(ip_network('9.9.9.0/24')) is None
+    subnet = testphpipam.get_subnet(ip_network('10.1.0.0/28'))
+    assert subnet['subnet'] == ip_network('10.1.0.0/28')
+    assert subnet['description'] == 'TEST /28 SUBNET'
+    subnet = testphpipam.get_subnet(ip_network('10.4.0.0/31'))
+    assert subnet['subnet'] == ip_network('10.4.0.0/31')
+    assert subnet['description'] == 'TEST /31 SUBNET GROUP'
+
+
 def test_get_subnet_by_desc(testphpipam):
     assert testphpipam.get_subnet_by_desc('unknown subnet') is None
     subnet = testphpipam.get_subnet_by_desc('TEST /28 SUBNET')

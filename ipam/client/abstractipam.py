@@ -23,6 +23,10 @@ class AbstractIPAM:
         raise NotImplementedError()
 
     @abstractmethod
+    def add_subnet(self, subnet, parent_subnet, description):
+        raise NotImplementedError()
+
+    @abstractmethod
     def add_next_subnet(self, parent_subnet, prefixlen, description):
         raise NotImplementedError()
 
@@ -80,6 +84,10 @@ class AbstractIPAM:
 
     @abstractmethod
     def get_ip_by_mac(self, mac):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def get_subnet(self, subnet):
         raise NotImplementedError()
 
     @abstractmethod

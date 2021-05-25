@@ -755,6 +755,21 @@ class PHPIPAM(AbstractIPAM):
             netlist.append(item)
         return netlist
 
+    def get_subnet(self, subnet):
+        self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
+                          where subnet = '{}' AND mask = '{}'".format(int(subnet.network_address),
+                                                                      subnet.prefixlen))
+        row = self.cur.fetchone()
+        if row is not None:
+            item = {}
+            subnet = str(ip_address(int(row[0])))
+            netmask = row[1]
+            item['subnet'] = ip_network("{}/{}".format(subnet, netmask))
+            item['description'] = row[2]
+            item['vlan_id'] = row[3]
+            return item
+        return None
+
     def get_subnet_list_by_desc(self, description):
         self.cur.execute("SELECT subnet,mask,description,vlanId FROM subnets \
                          WHERE description LIKE '%s'"
